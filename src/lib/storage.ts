@@ -29,7 +29,9 @@ const DEFAULT_SUBCATEGORIES: Subcategory[] = [
 ];
 
 function parseDate(date: string | Date): Date {
-  return typeof date === 'string' ? new Date(date) : date;
+  if (date instanceof Date) return date;
+  const parsed = new Date(date);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
 export function getCategories(): Category[] {
