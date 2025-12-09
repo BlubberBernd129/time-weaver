@@ -12,7 +12,7 @@ interface DayTimelineProps {
   getSubcategoryById: (id: string) => Subcategory | undefined;
 }
 
-const HOUR_HEIGHT = 60; // pixels per hour
+const HOUR_HEIGHT = 80; // pixels per hour
 const START_HOUR = 6; // Start at 6:00
 const END_HOUR = 23; // End at 23:00
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -76,7 +76,7 @@ export function DayTimeline({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative">
+      <div className="flex-1 overflow-y-auto relative pr-1 scrollbar-thin scrollbar-track-secondary scrollbar-thumb-primary/50 hover:scrollbar-thumb-primary">
         <div
           className="relative"
           style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
