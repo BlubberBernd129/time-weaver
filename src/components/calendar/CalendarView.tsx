@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 import { Category, Subcategory, TimeEntry, CalendarView as CalendarViewType } from '@/types/timetracker';
 import { formatTime, formatDuration, formatMonthYear, getWeekDays, formatWeekdayShort } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
+import { DraggableEntryCreator, DragHandle } from './DraggableEntryCreator';
 
 interface CalendarViewProps {
   timeEntries: TimeEntry[];
@@ -21,6 +22,14 @@ interface CalendarViewProps {
   subcategories: Subcategory[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
+  getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
+  onAddEntry: (
+    categoryId: string,
+    subcategoryId: string,
+    startTime: Date,
+    endTime: Date,
+    description?: string
+  ) => void;
 }
 
 export function CalendarView({
@@ -29,6 +38,8 @@ export function CalendarView({
   subcategories,
   getCategoryById,
   getSubcategoryById,
+  getSubcategoriesForCategory,
+  onAddEntry,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewType>('week');
@@ -109,6 +120,9 @@ export function CalendarView({
         </div>
       </div>
 
+      {/* Drag Handle */}
+      <DragHandle />
+
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <Button variant="outline" size="icon" onClick={handlePrevious}>
@@ -132,6 +146,9 @@ export function CalendarView({
           getEntriesForDay={getEntriesForDay}
           getCategoryById={getCategoryById}
           getSubcategoryById={getSubcategoryById}
+          categories={categories}
+          getSubcategoriesForCategory={getSubcategoriesForCategory}
+          onAddEntry={onAddEntry}
         />
       ) : (
         <MonthView
@@ -139,6 +156,9 @@ export function CalendarView({
           currentMonth={currentDate}
           getEntriesForDay={getEntriesForDay}
           getCategoryById={getCategoryById}
+          categories={categories}
+          getSubcategoriesForCategory={getSubcategoriesForCategory}
+          onAddEntry={onAddEntry}
         />
       )}
     </div>
@@ -150,9 +170,26 @@ interface WeekViewProps {
   getEntriesForDay: (date: Date) => TimeEntry[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
+  categories: Category[];
+  getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
+  onAddEntry: (
+    categoryId: string,
+    subcategoryId: string,
+    startTime: Date,
+    endTime: Date,
+    description?: string
+  ) => void;
 }
 
-function WeekView({ days, getEntriesForDay, getCategoryById, getSubcategoryById }: WeekViewProps) {
+function WeekView({ 
+  days, 
+  getEntriesForDay, 
+  getCategoryById, 
+  getSubcategoryById,
+  categories,
+  getSubcategoriesForCategory,
+  onAddEntry,
+}: WeekViewProps) {
   const today = new Date();
 
   return (
@@ -162,58 +199,65 @@ function WeekView({ days, getEntriesForDay, getCategoryById, getSubcategoryById 
         const isToday = isSameDay(day, today);
 
         return (
-          <div
+          <DraggableEntryCreator
             key={day.toISOString()}
-            className={cn(
-              "glass-card p-3 min-h-[300px] flex flex-col",
-              isToday && "ring-2 ring-primary"
-            )}
+            date={day}
+            categories={categories}
+            getSubcategoriesForCategory={getSubcategoriesForCategory}
+            onAddEntry={onAddEntry}
           >
-            <div className="text-center mb-3 pb-2 border-b border-border">
-              <div className="text-xs text-muted-foreground uppercase">
-                {formatWeekdayShort(day)}
-              </div>
-              <div className={cn(
-                "text-lg font-semibold",
-                isToday && "text-primary"
-              )}>
-                {format(day, 'd')}
-              </div>
-            </div>
-
-            <div className="flex-1 space-y-2 overflow-y-auto">
-              {entries.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  Keine Einträge
-                </p>
-              ) : (
-                entries.map((entry) => {
-                  const category = getCategoryById(entry.categoryId);
-                  const subcategory = getSubcategoryById(entry.subcategoryId);
-
-                  return (
-                    <div
-                      key={entry.id}
-                      className="time-block p-2 text-xs"
-                      style={{ 
-                        backgroundColor: `${category?.color}15`,
-                        borderLeftColor: category?.color,
-                        borderLeftWidth: '3px',
-                      }}
-                    >
-                      <div className="font-medium truncate">{subcategory?.name}</div>
-                      <div className="text-muted-foreground">
-                        {formatTime(new Date(entry.startTime))} - {entry.endTime && formatTime(new Date(entry.endTime))}
-                      </div>
-                      <div className="font-mono mt-1">
-                        {formatDuration(entry.duration)}
-                      </div>
-                    </div>
-                  );
-                })
+            <div
+              className={cn(
+                "glass-card p-3 min-h-[300px] flex flex-col",
+                isToday && "ring-2 ring-primary"
               )}
+            >
+              <div className="text-center mb-3 pb-2 border-b border-border">
+                <div className="text-xs text-muted-foreground uppercase">
+                  {formatWeekdayShort(day)}
+                </div>
+                <div className={cn(
+                  "text-lg font-semibold",
+                  isToday && "text-primary"
+                )}>
+                  {format(day, 'd')}
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-2 overflow-y-auto">
+                {entries.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    Keine Einträge
+                  </p>
+                ) : (
+                  entries.map((entry) => {
+                    const category = getCategoryById(entry.categoryId);
+                    const subcategory = getSubcategoryById(entry.subcategoryId);
+
+                    return (
+                      <div
+                        key={entry.id}
+                        className="time-block p-2 text-xs"
+                        style={{ 
+                          backgroundColor: `${category?.color}15`,
+                          borderLeftColor: category?.color,
+                          borderLeftWidth: '3px',
+                        }}
+                      >
+                        <div className="font-medium truncate">{subcategory?.name}</div>
+                        <div className="text-muted-foreground">
+                          {formatTime(new Date(entry.startTime))} - {entry.endTime && formatTime(new Date(entry.endTime))}
+                        </div>
+                        <div className="font-mono mt-1">
+                          {formatDuration(entry.duration)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          </DraggableEntryCreator>
         );
       })}
     </div>
@@ -225,9 +269,26 @@ interface MonthViewProps {
   currentMonth: Date;
   getEntriesForDay: (date: Date) => TimeEntry[];
   getCategoryById: (id: string) => Category | undefined;
+  categories: Category[];
+  getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
+  onAddEntry: (
+    categoryId: string,
+    subcategoryId: string,
+    startTime: Date,
+    endTime: Date,
+    description?: string
+  ) => void;
 }
 
-function MonthView({ days, currentMonth, getEntriesForDay, getCategoryById }: MonthViewProps) {
+function MonthView({ 
+  days, 
+  currentMonth, 
+  getEntriesForDay, 
+  getCategoryById,
+  categories,
+  getSubcategoriesForCategory,
+  onAddEntry,
+}: MonthViewProps) {
   const today = new Date();
   const weekDayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -251,47 +312,54 @@ function MonthView({ days, currentMonth, getEntriesForDay, getCategoryById }: Mo
           const totalDuration = entries.reduce((acc, e) => acc + e.duration, 0);
 
           return (
-            <div
+            <DraggableEntryCreator
               key={day.toISOString()}
-              className={cn(
-                "min-h-[100px] p-2 rounded-lg border border-border/50 transition-colors",
-                !isCurrentMonth && "opacity-40",
-                isToday && "ring-2 ring-primary",
-                "hover:bg-secondary/30"
-              )}
+              date={day}
+              categories={categories}
+              getSubcategoriesForCategory={getSubcategoriesForCategory}
+              onAddEntry={onAddEntry}
             >
-              <div className={cn(
-                "text-sm font-medium mb-2",
-                isToday && "text-primary"
-              )}>
-                {format(day, 'd')}
-              </div>
-
-              {entries.length > 0 && (
-                <div className="space-y-1">
-                  {entries.slice(0, 3).map((entry) => {
-                    const category = getCategoryById(entry.categoryId);
-                    return (
-                      <div
-                        key={entry.id}
-                        className="h-1.5 rounded-full"
-                        style={{ backgroundColor: category?.color }}
-                      />
-                    );
-                  })}
-                  {entries.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground">
-                      +{entries.length - 3} mehr
-                    </div>
-                  )}
-                  {totalDuration > 0 && (
-                    <div className="text-[10px] font-mono text-muted-foreground mt-1">
-                      {formatDuration(totalDuration)}
-                    </div>
-                  )}
+              <div
+                className={cn(
+                  "min-h-[100px] p-2 rounded-lg border border-border/50 transition-colors",
+                  !isCurrentMonth && "opacity-40",
+                  isToday && "ring-2 ring-primary",
+                  "hover:bg-secondary/30"
+                )}
+              >
+                <div className={cn(
+                  "text-sm font-medium mb-2",
+                  isToday && "text-primary"
+                )}>
+                  {format(day, 'd')}
                 </div>
-              )}
-            </div>
+
+                {entries.length > 0 && (
+                  <div className="space-y-1">
+                    {entries.slice(0, 3).map((entry) => {
+                      const category = getCategoryById(entry.categoryId);
+                      return (
+                        <div
+                          key={entry.id}
+                          className="h-1.5 rounded-full"
+                          style={{ backgroundColor: category?.color }}
+                        />
+                      );
+                    })}
+                    {entries.length > 3 && (
+                      <div className="text-[10px] text-muted-foreground">
+                        +{entries.length - 3} mehr
+                      </div>
+                    )}
+                    {totalDuration > 0 && (
+                      <div className="text-[10px] font-mono text-muted-foreground mt-1">
+                        {formatDuration(totalDuration)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </DraggableEntryCreator>
           );
         })}
       </div>

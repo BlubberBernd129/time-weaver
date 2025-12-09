@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Play, Square, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, TimerState } from '@/types/timetracker';
-import { formatDuration } from '@/lib/timeUtils';
+import { formatDuration, formatTime } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EditTimerStartDialog } from './EditTimerStartDialog';
 
 interface TimerDisplayProps {
   categories: Category[];
@@ -18,6 +19,7 @@ interface TimerDisplayProps {
   timerState: TimerState | null;
   onStart: (categoryId: string, subcategoryId: string) => void;
   onStop: () => void;
+  onUpdateStartTime: (newStartTime: Date) => void;
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
 }
 
@@ -27,6 +29,7 @@ export function TimerDisplay({
   timerState,
   onStart,
   onStop,
+  onUpdateStartTime,
   getSubcategoriesForCategory,
 }: TimerDisplayProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -100,14 +103,20 @@ export function TimerDisplay({
           {formatDuration(elapsed)}
         </div>
         {isRunning && currentCategory && currentSubcategory && (
-          <div className="flex items-center justify-center gap-2">
-            <span
-              className="w-3 h-3 rounded-full animate-pulse"
-              style={{ backgroundColor: currentCategory.color }}
-            />
-            <span className="text-sm text-muted-foreground">
-              {currentCategory.name} → {currentSubcategory.name}
-            </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-3 h-3 rounded-full animate-pulse"
+                style={{ backgroundColor: currentCategory.color }}
+              />
+              <span className="text-sm text-muted-foreground">
+                {currentCategory.name} → {currentSubcategory.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Gestartet: {timerState?.startTime && formatTime(timerState.startTime)}</span>
+              <EditTimerStartDialog timerState={timerState!} onUpdateStartTime={onUpdateStartTime} />
+            </div>
           </div>
         )}
       </div>

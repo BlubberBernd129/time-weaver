@@ -24,8 +24,10 @@ const Index = () => {
     deleteSubcategory,
     startTimer,
     stopTimer,
+    updateTimerStartTime,
     addManualEntry,
     deleteTimeEntry,
+    updateTimeEntry,
     getSubcategoriesForCategory,
     getCategoryById,
     getSubcategoryById,
@@ -53,8 +55,10 @@ const Index = () => {
             timerState={timerState}
             onStartTimer={startTimer}
             onStopTimer={stopTimer}
+            onUpdateTimerStartTime={updateTimerStartTime}
             onAddManualEntry={addManualEntry}
             onDeleteEntry={deleteTimeEntry}
+            onUpdateEntry={updateTimeEntry}
             getSubcategoriesForCategory={getSubcategoriesForCategory}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
@@ -82,6 +86,8 @@ const Index = () => {
             subcategories={subcategories}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
+            getSubcategoriesForCategory={getSubcategoriesForCategory}
+            onAddEntry={addManualEntry}
           />
         );
       case 'statistics':
