@@ -110,6 +110,17 @@ export function useTimeTracker() {
     saveTimerState(newState);
   }, []);
 
+  const updateTimerStartTime = useCallback((newStartTime: Date) => {
+    if (!timerState || !timerState.isRunning) return;
+
+    const updatedState: TimerState = {
+      ...timerState,
+      startTime: newStartTime,
+    };
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+  }, [timerState]);
+
   const stopTimer = useCallback(() => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
@@ -212,6 +223,7 @@ export function useTimeTracker() {
     // Timer operations
     startTimer,
     stopTimer,
+    updateTimerStartTime,
 
     // Time entry operations
     addManualEntry,

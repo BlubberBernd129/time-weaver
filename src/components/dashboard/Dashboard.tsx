@@ -12,6 +12,7 @@ interface DashboardProps {
   timerState: TimerState | null;
   onStartTimer: (categoryId: string, subcategoryId: string) => void;
   onStopTimer: () => void;
+  onUpdateTimerStartTime: (newStartTime: Date) => void;
   onAddManualEntry: (
     categoryId: string,
     subcategoryId: string,
@@ -20,6 +21,7 @@ interface DashboardProps {
     description?: string
   ) => void;
   onDeleteEntry: (id: string) => void;
+  onUpdateEntry: (id: string, updates: Partial<TimeEntry>) => void;
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
@@ -32,8 +34,10 @@ export function Dashboard({
   timerState,
   onStartTimer,
   onStopTimer,
+  onUpdateTimerStartTime,
   onAddManualEntry,
   onDeleteEntry,
+  onUpdateEntry,
   getSubcategoriesForCategory,
   getCategoryById,
   getSubcategoryById,
@@ -69,6 +73,7 @@ export function Dashboard({
           timerState={timerState}
           onStart={onStartTimer}
           onStop={onStopTimer}
+          onUpdateStartTime={onUpdateTimerStartTime}
           getSubcategoriesForCategory={getSubcategoriesForCategory}
         />
 
@@ -80,6 +85,7 @@ export function Dashboard({
           getCategoryById={getCategoryById}
           getSubcategoryById={getSubcategoryById}
           onDelete={onDeleteEntry}
+          onUpdate={onUpdateEntry}
         />
       </div>
     </div>

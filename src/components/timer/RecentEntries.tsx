@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { formatDuration, formatTime, formatDate } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
+import { EditEntryDialog } from './EditEntryDialog';
 
 interface RecentEntriesProps {
   timeEntries: TimeEntry[];
@@ -11,6 +12,7 @@ interface RecentEntriesProps {
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<TimeEntry>) => void;
 }
 
 export function RecentEntries({
@@ -20,6 +22,7 @@ export function RecentEntries({
   getCategoryById,
   getSubcategoryById,
   onDelete,
+  onUpdate,
 }: RecentEntriesProps) {
   // Get last 5 entries, sorted by start time
   const recentEntries = [...timeEntries]
@@ -68,10 +71,11 @@ export function RecentEntries({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <span className="font-mono text-sm font-medium">
                   {formatDuration(entry.duration)}
                 </span>
+                <EditEntryDialog entry={entry} onUpdate={onUpdate} />
                 <Button
                   variant="ghost"
                   size="iconSm"
