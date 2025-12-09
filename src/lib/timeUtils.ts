@@ -26,10 +26,12 @@ export function formatHoursMinutes(seconds: number): string {
 }
 
 export function formatTime(date: Date): string {
+  if (!date || isNaN(date.getTime())) return '--:--';
   return format(date, 'HH:mm', { locale: de });
 }
 
 export function formatDate(date: Date): string {
+  if (!date || isNaN(date.getTime())) return '--.--.----';
   return format(date, 'dd.MM.yyyy', { locale: de });
 }
 
