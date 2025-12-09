@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { calculateWeeklyStats, calculateMonthlyStats, formatHoursMinutes, formatMonthYear, getWeekDays } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
+import { CategoryPieChart } from './CategoryPieChart';
 
 interface StatisticsViewProps {
   timeEntries: TimeEntry[];
@@ -105,6 +106,9 @@ export function StatisticsView({
           {stats.byCategory.length} Kategorien aktiv
         </div>
       </div>
+
+      {/* Pie Chart */}
+      <CategoryPieChart stats={stats} />
 
       {/* Category Breakdown */}
       <div className="space-y-3">

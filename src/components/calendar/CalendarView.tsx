@@ -15,6 +15,7 @@ import { Category, Subcategory, TimeEntry, CalendarView as CalendarViewType } fr
 import { formatTime, formatDuration, formatMonthYear, getWeekDays, formatWeekdayShort } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
 import { DraggableEntryCreator, DragHandle } from './DraggableEntryCreator';
+import { EntryDetailDialog } from './EntryDetailDialog';
 
 interface CalendarViewProps {
   timeEntries: TimeEntry[];
@@ -30,6 +31,8 @@ interface CalendarViewProps {
     endTime: Date,
     description?: string
   ) => void;
+  onUpdateEntry?: (id: string, updates: Partial<TimeEntry>) => void;
+  onDeleteEntry?: (id: string) => void;
 }
 
 export function CalendarView({
@@ -40,10 +43,14 @@ export function CalendarView({
   getSubcategoryById,
   getSubcategoriesForCategory,
   onAddEntry,
+  onUpdateEntry,
+  onDeleteEntry,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewType>('week');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const handlePrevious = () => {
     if (viewMode === 'week') {
@@ -80,7 +87,7 @@ export function CalendarView({
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
@@ -140,27 +147,52 @@ export function CalendarView({
       </div>
 
       {/* Calendar Grid */}
-      {viewMode === 'week' ? (
-        <WeekView 
-          days={weekDays}
-          getEntriesForDay={getEntriesForDay}
-          getCategoryById={getCategoryById}
-          getSubcategoryById={getSubcategoryById}
-          categories={categories}
-          getSubcategoriesForCategory={getSubcategoriesForCategory}
-          onAddEntry={onAddEntry}
-        />
-      ) : (
-        <MonthView
-          days={calendarDays}
-          currentMonth={currentDate}
-          getEntriesForDay={getEntriesForDay}
-          getCategoryById={getCategoryById}
-          categories={categories}
-          getSubcategoriesForCategory={getSubcategoriesForCategory}
-          onAddEntry={onAddEntry}
-        />
-      )}
+      <div className="flex-1 min-h-0">
+        {viewMode === 'week' ? (
+          <WeekView 
+            days={weekDays}
+            getEntriesForDay={getEntriesForDay}
+            getCategoryById={getCategoryById}
+            getSubcategoryById={getSubcategoryById}
+            categories={categories}
+            getSubcategoriesForCategory={getSubcategoriesForCategory}
+            onAddEntry={onAddEntry}
+            onEntryClick={(entry) => {
+              setSelectedEntry(entry);
+              setDetailDialogOpen(true);
+            }}
+          />
+        ) : (
+          <MonthView
+            days={calendarDays}
+            currentMonth={currentDate}
+            getEntriesForDay={getEntriesForDay}
+            getCategoryById={getCategoryById}
+            getSubcategoryById={getSubcategoryById}
+            categories={categories}
+            getSubcategoriesForCategory={getSubcategoriesForCategory}
+            onAddEntry={onAddEntry}
+            onEntryClick={(entry) => {
+              setSelectedEntry(entry);
+              setDetailDialogOpen(true);
+            }}
+          />
+        )}
+      </div>
+
+      {/* Entry Detail Dialog */}
+      <EntryDetailDialog
+        entry={selectedEntry}
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        category={selectedEntry ? getCategoryById(selectedEntry.categoryId) : undefined}
+        subcategory={selectedEntry ? getSubcategoryById(selectedEntry.subcategoryId) : undefined}
+        onUpdate={(id, updates) => {
+          onUpdateEntry?.(id, updates);
+          setDetailDialogOpen(false);
+        }}
+        onDelete={onDeleteEntry}
+      />
     </div>
   );
 }
@@ -179,6 +211,7 @@ interface WeekViewProps {
     endTime: Date,
     description?: string
   ) => void;
+  onEntryClick: (entry: TimeEntry) => void;
 }
 
 function WeekView({ 
@@ -189,11 +222,12 @@ function WeekView({
   categories,
   getSubcategoriesForCategory,
   onAddEntry,
+  onEntryClick,
 }: WeekViewProps) {
   const today = new Date();
 
   return (
-    <div className="grid grid-cols-7 gap-3">
+    <div className="grid grid-cols-7 gap-3 h-full">
       {days.map((day) => {
         const entries = getEntriesForDay(day);
         const isToday = isSameDay(day, today);
@@ -208,7 +242,7 @@ function WeekView({
           >
             <div
               className={cn(
-                "glass-card p-3 min-h-[300px] flex flex-col",
+                "glass-card p-3 h-full min-h-[400px] flex flex-col",
                 isToday && "ring-2 ring-primary"
               )}
             >
@@ -237,7 +271,11 @@ function WeekView({
                     return (
                       <div
                         key={entry.id}
-                        className="time-block p-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEntryClick(entry);
+                        }}
+                        className="time-block p-2 text-xs cursor-pointer hover:brightness-110 transition-all"
                         style={{ 
                           backgroundColor: `${category?.color}15`,
                           borderLeftColor: category?.color,
@@ -269,6 +307,7 @@ interface MonthViewProps {
   currentMonth: Date;
   getEntriesForDay: (date: Date) => TimeEntry[];
   getCategoryById: (id: string) => Category | undefined;
+  getSubcategoryById: (id: string) => Subcategory | undefined;
   categories: Category[];
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
   onAddEntry: (
@@ -278,6 +317,7 @@ interface MonthViewProps {
     endTime: Date,
     description?: string
   ) => void;
+  onEntryClick: (entry: TimeEntry) => void;
 }
 
 function MonthView({ 
@@ -285,15 +325,17 @@ function MonthView({
   currentMonth, 
   getEntriesForDay, 
   getCategoryById,
+  getSubcategoryById,
   categories,
   getSubcategoriesForCategory,
   onAddEntry,
+  onEntryClick,
 }: MonthViewProps) {
   const today = new Date();
   const weekDayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
   return (
-    <div className="glass-card p-4">
+    <div className="glass-card p-4 h-full flex flex-col">
       {/* Header */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {weekDayNames.map((name) => (
@@ -304,7 +346,7 @@ function MonthView({
       </div>
 
       {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-2 flex-1">
         {days.map((day) => {
           const entries = getEntriesForDay(day);
           const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -338,12 +380,24 @@ function MonthView({
                   <div className="space-y-1">
                     {entries.slice(0, 3).map((entry) => {
                       const category = getCategoryById(entry.categoryId);
+                      const subcategory = getSubcategoryById(entry.subcategoryId);
                       return (
                         <div
                           key={entry.id}
-                          className="h-1.5 rounded-full"
-                          style={{ backgroundColor: category?.color }}
-                        />
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEntryClick(entry);
+                          }}
+                          className="h-5 rounded px-1 flex items-center gap-1 cursor-pointer hover:brightness-110 transition-all"
+                          style={{ backgroundColor: `${category?.color}30` }}
+                          title={`${subcategory?.name} - ${formatDuration(entry.duration)}`}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: category?.color }}
+                          />
+                          <span className="text-[9px] truncate">{subcategory?.name}</span>
+                        </div>
                       );
                     })}
                     {entries.length > 3 && (

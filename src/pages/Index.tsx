@@ -88,6 +88,8 @@ const Index = () => {
             getSubcategoryById={getSubcategoryById}
             getSubcategoriesForCategory={getSubcategoriesForCategory}
             onAddEntry={addManualEntry}
+            onUpdateEntry={updateTimeEntry}
+            onDeleteEntry={deleteTimeEntry}
           />
         );
       case 'statistics':
