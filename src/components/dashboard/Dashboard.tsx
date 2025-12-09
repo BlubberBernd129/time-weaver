@@ -1,0 +1,87 @@
+import { TimerDisplay } from '@/components/timer/TimerDisplay';
+import { QuickStats } from '@/components/timer/QuickStats';
+import { ManualEntryDialog } from '@/components/timer/ManualEntryDialog';
+import { RecentEntries } from '@/components/timer/RecentEntries';
+import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
+import { LayoutDashboard } from 'lucide-react';
+
+interface DashboardProps {
+  categories: Category[];
+  subcategories: Subcategory[];
+  timeEntries: TimeEntry[];
+  timerState: TimerState | null;
+  onStartTimer: (categoryId: string, subcategoryId: string) => void;
+  onStopTimer: () => void;
+  onAddManualEntry: (
+    categoryId: string,
+    subcategoryId: string,
+    startTime: Date,
+    endTime: Date,
+    description?: string
+  ) => void;
+  onDeleteEntry: (id: string) => void;
+  getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
+  getCategoryById: (id: string) => Category | undefined;
+  getSubcategoryById: (id: string) => Subcategory | undefined;
+}
+
+export function Dashboard({
+  categories,
+  subcategories,
+  timeEntries,
+  timerState,
+  onStartTimer,
+  onStopTimer,
+  onAddManualEntry,
+  onDeleteEntry,
+  getSubcategoriesForCategory,
+  getCategoryById,
+  getSubcategoryById,
+}: DashboardProps) {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <LayoutDashboard className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+        </div>
+        <ManualEntryDialog
+          categories={categories}
+          getSubcategoriesForCategory={getSubcategoriesForCategory}
+          onAddEntry={onAddManualEntry}
+        />
+      </div>
+
+      {/* Quick Stats */}
+      <QuickStats
+        timeEntries={timeEntries}
+        categories={categories}
+        subcategories={subcategories}
+      />
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Timer */}
+        <TimerDisplay
+          categories={categories}
+          subcategories={subcategories}
+          timerState={timerState}
+          onStart={onStartTimer}
+          onStop={onStopTimer}
+          getSubcategoriesForCategory={getSubcategoriesForCategory}
+        />
+
+        {/* Recent Entries */}
+        <RecentEntries
+          timeEntries={timeEntries}
+          categories={categories}
+          subcategories={subcategories}
+          getCategoryById={getCategoryById}
+          getSubcategoryById={getSubcategoryById}
+          onDelete={onDeleteEntry}
+        />
+      </div>
+    </div>
+  );
+}
