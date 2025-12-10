@@ -1,10 +1,11 @@
-import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
+import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
 
 const STORAGE_KEYS = {
   CATEGORIES: 'timetracker_categories',
   SUBCATEGORIES: 'timetracker_subcategories',
   TIME_ENTRIES: 'timetracker_entries',
   TIMER_STATE: 'timetracker_timer',
+  GOALS: 'timetracker_goals',
 };
 
 // Default categories with colors
@@ -32,6 +33,14 @@ function parseDate(date: string | Date): Date {
   if (date instanceof Date) return date;
   const parsed = new Date(date);
   return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function parsePausePeriods(periods: PausePeriod[] | undefined): PausePeriod[] {
+  if (!periods) return [];
+  return periods.map(p => ({
+    startTime: parseDate(p.startTime),
+    endTime: p.endTime ? parseDate(p.endTime) : null,
+  }));
 }
 
 export function getCategories(): Category[] {
@@ -73,6 +82,7 @@ export function getTimeEntries(): TimeEntry[] {
     ...e,
     startTime: parseDate(e.startTime),
     endTime: e.endTime ? parseDate(e.endTime) : null,
+    pausePeriods: parsePausePeriods(e.pausePeriods),
   }));
 }
 
@@ -87,6 +97,16 @@ export function getTimerState(): TimerState | null {
   return {
     ...state,
     startTime: state.startTime ? parseDate(state.startTime) : null,
+    pauseStartTime: state.pauseStartTime ? parseDate(state.pauseStartTime) : null,
+    pausePeriods: parsePausePeriods(state.pausePeriods),
+    // Ensure new fields have defaults
+    isPaused: state.isPaused ?? false,
+    totalPausedTime: state.totalPausedTime ?? 0,
+    pomodoroMode: state.pomodoroMode ?? false,
+    pomodoroPhase: state.pomodoroPhase ?? 'work',
+    pomodoroWorkDuration: state.pomodoroWorkDuration ?? 1500,
+    pomodoroBreakDuration: state.pomodoroBreakDuration ?? 300,
+    pomodoroElapsed: state.pomodoroElapsed ?? 0,
   };
 }
 
@@ -96,6 +116,19 @@ export function saveTimerState(state: TimerState | null): void {
   } else {
     localStorage.removeItem(STORAGE_KEYS.TIMER_STATE);
   }
+}
+
+export function getGoals(): Goal[] {
+  const stored = localStorage.getItem(STORAGE_KEYS.GOALS);
+  if (!stored) return [];
+  return JSON.parse(stored).map((g: Goal) => ({
+    ...g,
+    createdAt: parseDate(g.createdAt),
+  }));
+}
+
+export function saveGoals(goals: Goal[]): void {
+  localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
 }
 
 export function generateId(prefix: string = 'id'): string {

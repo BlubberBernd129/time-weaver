@@ -3,7 +3,8 @@ import { QuickStats } from '@/components/timer/QuickStats';
 import { ManualEntryDialog } from '@/components/timer/ManualEntryDialog';
 import { RecentEntries } from '@/components/timer/RecentEntries';
 import { DayTimeline } from './DayTimeline';
-import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
+import { GoalsManager } from '@/components/goals/GoalsManager';
+import { Category, Subcategory, TimeEntry, TimerState, Goal } from '@/types/timetracker';
 import { LayoutDashboard } from 'lucide-react';
 
 interface DashboardProps {
@@ -11,18 +12,26 @@ interface DashboardProps {
   subcategories: Subcategory[];
   timeEntries: TimeEntry[];
   timerState: TimerState | null;
-  onStartTimer: (categoryId: string, subcategoryId: string) => void;
+  goals: Goal[];
+  onStartTimer: (categoryId: string, subcategoryId: string, pomodoroMode?: boolean) => void;
   onStopTimer: () => void;
+  onPauseTimer: () => void;
+  onResumeTimer: () => void;
   onUpdateTimerStartTime: (newStartTime: Date) => void;
+  onSwitchPomodoroPhase: () => void;
+  onUpdatePomodoroElapsed: (elapsed: number) => void;
   onAddManualEntry: (
     categoryId: string,
     subcategoryId: string,
     startTime: Date,
     endTime: Date,
-    description?: string
+    description?: string,
+    isPause?: boolean
   ) => void;
   onDeleteEntry: (id: string) => void;
   onUpdateEntry: (id: string, updates: Partial<TimeEntry>) => void;
+  onAddGoal: (categoryId: string, type: 'daily' | 'weekly', targetMinutes: number) => void;
+  onDeleteGoal: (id: string) => void;
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
@@ -33,12 +42,19 @@ export function Dashboard({
   subcategories,
   timeEntries,
   timerState,
+  goals,
   onStartTimer,
   onStopTimer,
+  onPauseTimer,
+  onResumeTimer,
   onUpdateTimerStartTime,
+  onSwitchPomodoroPhase,
+  onUpdatePomodoroElapsed,
   onAddManualEntry,
   onDeleteEntry,
   onUpdateEntry,
+  onAddGoal,
+  onDeleteGoal,
   getSubcategoriesForCategory,
   getCategoryById,
   getSubcategoryById,
@@ -56,7 +72,7 @@ export function Dashboard({
       </div>
 
       {/* Right: Main Content */}
-      <div className="flex-1 space-y-6 overflow-y-auto">
+      <div className="flex-1 space-y-6 overflow-y-auto pr-2">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -86,21 +102,34 @@ export function Dashboard({
             timerState={timerState}
             onStart={onStartTimer}
             onStop={onStopTimer}
+            onPause={onPauseTimer}
+            onResume={onResumeTimer}
             onUpdateStartTime={onUpdateTimerStartTime}
+            onSwitchPomodoroPhase={onSwitchPomodoroPhase}
+            onUpdatePomodoroElapsed={onUpdatePomodoroElapsed}
             getSubcategoriesForCategory={getSubcategoriesForCategory}
           />
 
-          {/* Recent Entries */}
-          <RecentEntries
-            timeEntries={timeEntries}
+          {/* Goals */}
+          <GoalsManager
             categories={categories}
-            subcategories={subcategories}
-            getCategoryById={getCategoryById}
-            getSubcategoryById={getSubcategoryById}
-            onDelete={onDeleteEntry}
-            onUpdate={onUpdateEntry}
+            goals={goals}
+            timeEntries={timeEntries}
+            onAddGoal={onAddGoal}
+            onDeleteGoal={onDeleteGoal}
           />
         </div>
+
+        {/* Recent Entries */}
+        <RecentEntries
+          timeEntries={timeEntries}
+          categories={categories}
+          subcategories={subcategories}
+          getCategoryById={getCategoryById}
+          getSubcategoryById={getSubcategoryById}
+          onDelete={onDeleteEntry}
+          onUpdate={onUpdateEntry}
+        />
       </div>
     </div>
   );
