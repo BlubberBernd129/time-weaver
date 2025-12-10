@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
+import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
 import {
   getCategories,
   saveCategories,
@@ -9,6 +9,8 @@ import {
   saveTimeEntries,
   getTimerState,
   saveTimerState,
+  getGoals,
+  saveGoals,
   generateId,
 } from '@/lib/storage';
 
@@ -17,6 +19,7 @@ export function useTimeTracker() {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [timerState, setTimerState] = useState<TimerState | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load data on mount
@@ -25,6 +28,7 @@ export function useTimeTracker() {
     setSubcategories(getSubcategories());
     setTimeEntries(getTimeEntries());
     setTimerState(getTimerState());
+    setGoals(getGoals());
     setIsLoaded(true);
   }, []);
 
@@ -54,15 +58,18 @@ export function useTimeTracker() {
     const updatedCategories = categories.filter(c => c.id !== id);
     const updatedSubcategories = subcategories.filter(s => s.categoryId !== id);
     const updatedEntries = timeEntries.filter(e => e.categoryId !== id);
+    const updatedGoals = goals.filter(g => g.categoryId !== id);
     
     setCategories(updatedCategories);
     setSubcategories(updatedSubcategories);
     setTimeEntries(updatedEntries);
+    setGoals(updatedGoals);
     
     saveCategories(updatedCategories);
     saveSubcategories(updatedSubcategories);
     saveTimeEntries(updatedEntries);
-  }, [categories, subcategories, timeEntries]);
+    saveGoals(updatedGoals);
+  }, [categories, subcategories, timeEntries, goals]);
 
   // Subcategory operations
   const addSubcategory = useCallback((categoryId: string, name: string) => {
@@ -98,13 +105,22 @@ export function useTimeTracker() {
   }, [subcategories, timeEntries]);
 
   // Timer operations
-  const startTimer = useCallback((categoryId: string, subcategoryId: string) => {
+  const startTimer = useCallback((categoryId: string, subcategoryId: string, pomodoroMode: boolean = false) => {
     const newState: TimerState = {
       isRunning: true,
+      isPaused: false,
       startTime: new Date(),
       categoryId,
       subcategoryId,
       elapsed: 0,
+      pauseStartTime: null,
+      totalPausedTime: 0,
+      pausePeriods: [],
+      pomodoroMode,
+      pomodoroPhase: 'work',
+      pomodoroWorkDuration: 1500, // 25 min
+      pomodoroBreakDuration: 300, // 5 min
+      pomodoroElapsed: 0,
     };
     setTimerState(newState);
     saveTimerState(newState);
@@ -121,11 +137,60 @@ export function useTimeTracker() {
     saveTimerState(updatedState);
   }, [timerState]);
 
+  const pauseTimer = useCallback(() => {
+    if (!timerState || !timerState.isRunning || timerState.isPaused) return;
+
+    const updatedState: TimerState = {
+      ...timerState,
+      isPaused: true,
+      pauseStartTime: new Date(),
+    };
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+  }, [timerState]);
+
+  const resumeTimer = useCallback(() => {
+    if (!timerState || !timerState.isPaused || !timerState.pauseStartTime) return;
+
+    const pauseEnd = new Date();
+    const pauseDuration = Math.floor((pauseEnd.getTime() - timerState.pauseStartTime.getTime()) / 1000);
+    
+    const newPausePeriod: PausePeriod = {
+      startTime: timerState.pauseStartTime,
+      endTime: pauseEnd,
+    };
+
+    const updatedState: TimerState = {
+      ...timerState,
+      isPaused: false,
+      pauseStartTime: null,
+      totalPausedTime: timerState.totalPausedTime + pauseDuration,
+      pausePeriods: [...timerState.pausePeriods, newPausePeriod],
+    };
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+  }, [timerState]);
+
   const stopTimer = useCallback(() => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
+    // If paused, end the pause first
+    let finalPausePeriods = [...timerState.pausePeriods];
+    let finalPausedTime = timerState.totalPausedTime;
+    
+    if (timerState.isPaused && timerState.pauseStartTime) {
+      const pauseEnd = new Date();
+      const pauseDuration = Math.floor((pauseEnd.getTime() - timerState.pauseStartTime.getTime()) / 1000);
+      finalPausePeriods.push({
+        startTime: timerState.pauseStartTime,
+        endTime: pauseEnd,
+      });
+      finalPausedTime += pauseDuration;
+    }
+
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - timerState.startTime.getTime()) / 1000);
+    const totalDuration = Math.floor((endTime.getTime() - timerState.startTime.getTime()) / 1000);
+    const activeDuration = totalDuration - finalPausedTime;
 
     const newEntry: TimeEntry = {
       id: generateId('entry'),
@@ -133,8 +198,9 @@ export function useTimeTracker() {
       subcategoryId: timerState.subcategoryId!,
       startTime: timerState.startTime,
       endTime,
-      duration,
+      duration: activeDuration, // Only active time counts
       isRunning: false,
+      pausePeriods: finalPausePeriods,
     };
 
     const updatedEntries = [...timeEntries, newEntry];
@@ -147,13 +213,40 @@ export function useTimeTracker() {
     return newEntry;
   }, [timerState, timeEntries]);
 
+  // Pomodoro phase switch
+  const switchPomodoroPhase = useCallback(() => {
+    if (!timerState || !timerState.pomodoroMode) return;
+
+    const newPhase = timerState.pomodoroPhase === 'work' ? 'break' : 'work';
+    
+    const updatedState: TimerState = {
+      ...timerState,
+      pomodoroPhase: newPhase,
+      pomodoroElapsed: 0,
+    };
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+  }, [timerState]);
+
+  const updatePomodoroElapsed = useCallback((elapsed: number) => {
+    if (!timerState) return;
+    
+    const updatedState: TimerState = {
+      ...timerState,
+      pomodoroElapsed: elapsed,
+    };
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+  }, [timerState]);
+
   // Manual time entry
   const addManualEntry = useCallback((
     categoryId: string,
     subcategoryId: string,
     startTime: Date,
     endTime: Date,
-    description?: string
+    description?: string,
+    isPause?: boolean
   ) => {
     const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
@@ -166,6 +259,7 @@ export function useTimeTracker() {
       duration,
       description,
       isRunning: false,
+      isPause: isPause || false,
     };
 
     const updatedEntries = [...timeEntries, newEntry];
@@ -189,6 +283,39 @@ export function useTimeTracker() {
     saveTimeEntries(updated);
   }, [timeEntries]);
 
+  // Goals operations
+  const addGoal = useCallback((categoryId: string, type: 'daily' | 'weekly', targetMinutes: number) => {
+    // Remove existing goal for same category and type
+    const filteredGoals = goals.filter(g => !(g.categoryId === categoryId && g.type === type));
+    
+    const newGoal: Goal = {
+      id: generateId('goal'),
+      categoryId,
+      type,
+      targetMinutes,
+      createdAt: new Date(),
+    };
+    
+    const updated = [...filteredGoals, newGoal];
+    setGoals(updated);
+    saveGoals(updated);
+    return newGoal;
+  }, [goals]);
+
+  const deleteGoal = useCallback((id: string) => {
+    const updated = goals.filter(g => g.id !== id);
+    setGoals(updated);
+    saveGoals(updated);
+  }, [goals]);
+
+  const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
+    const updated = goals.map(g => 
+      g.id === id ? { ...g, ...updates } : g
+    );
+    setGoals(updated);
+    saveGoals(updated);
+  }, [goals]);
+
   // Helper functions
   const getSubcategoriesForCategory = useCallback((categoryId: string) => {
     return subcategories.filter(s => s.categoryId === categoryId);
@@ -202,12 +329,22 @@ export function useTimeTracker() {
     return subcategories.find(s => s.id === id);
   }, [subcategories]);
 
+  const getGoalsForCategory = useCallback((categoryId: string) => {
+    return goals.filter(g => g.categoryId === categoryId);
+  }, [goals]);
+
+  // Get entries excluding pause entries for statistics
+  const getEntriesForStats = useCallback(() => {
+    return timeEntries.filter(e => !e.isPause);
+  }, [timeEntries]);
+
   return {
     // Data
     categories,
     subcategories,
     timeEntries,
     timerState,
+    goals,
     isLoaded,
 
     // Category operations
@@ -223,16 +360,27 @@ export function useTimeTracker() {
     // Timer operations
     startTimer,
     stopTimer,
+    pauseTimer,
+    resumeTimer,
     updateTimerStartTime,
+    switchPomodoroPhase,
+    updatePomodoroElapsed,
 
     // Time entry operations
     addManualEntry,
     deleteTimeEntry,
     updateTimeEntry,
 
+    // Goals operations
+    addGoal,
+    deleteGoal,
+    updateGoal,
+    getGoalsForCategory,
+
     // Helpers
     getSubcategoriesForCategory,
     getCategoryById,
     getSubcategoryById,
+    getEntriesForStats,
   };
 }

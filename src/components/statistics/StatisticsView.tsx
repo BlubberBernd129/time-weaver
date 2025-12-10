@@ -9,6 +9,9 @@ import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { calculateWeeklyStats, calculateMonthlyStats, formatHoursMinutes, formatMonthYear, getWeekDays } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
 import { CategoryPieChart } from './CategoryPieChart';
+import { ExportDialog } from './ExportDialog';
+import { WeekComparison } from './WeekComparison';
+import { TrendAnalysis } from './TrendAnalysis';
 
 interface StatisticsViewProps {
   timeEntries: TimeEntry[];
@@ -26,6 +29,9 @@ export function StatisticsView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Filter out pause entries for statistics
+  const activeEntries = timeEntries.filter(e => !e.isPause);
 
   const handlePrevious = () => {
     if (period === 'week') {
@@ -53,8 +59,8 @@ export function StatisticsView({
     setExpandedCategories(newExpanded);
   };
 
-  const weeklyStats = calculateWeeklyStats(timeEntries, categories, subcategories, currentDate);
-  const monthlyStats = calculateMonthlyStats(timeEntries, categories, subcategories, currentDate);
+  const weeklyStats = calculateWeeklyStats(activeEntries, categories, subcategories, currentDate);
+  const monthlyStats = calculateMonthlyStats(activeEntries, categories, subcategories, currentDate);
 
   const stats = period === 'week' ? weeklyStats : monthlyStats;
   const weekDays = getWeekDays(currentDate);
@@ -70,12 +76,19 @@ export function StatisticsView({
           <h1 className="text-2xl font-bold">Statistik</h1>
         </div>
 
-        <Tabs value={period} onValueChange={(v) => setPeriod(v as StatsPeriod)}>
-          <TabsList className="bg-secondary">
-            <TabsTrigger value="week">Woche</TabsTrigger>
-            <TabsTrigger value="month">Monat</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-3">
+          <ExportDialog
+            timeEntries={activeEntries}
+            categories={categories}
+            subcategories={subcategories}
+          />
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as StatsPeriod)}>
+            <TabsList className="bg-secondary">
+              <TabsTrigger value="week">Woche</TabsTrigger>
+              <TabsTrigger value="month">Monat</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -106,6 +119,12 @@ export function StatisticsView({
           {stats.byCategory.length} Kategorien aktiv
         </div>
       </div>
+
+      {/* Week Comparison */}
+      <WeekComparison timeEntries={activeEntries} categories={categories} />
+
+      {/* Trend Analysis */}
+      <TrendAnalysis timeEntries={activeEntries} categories={categories} />
 
       {/* Pie Chart */}
       <CategoryPieChart stats={stats} />

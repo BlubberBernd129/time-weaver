@@ -15,6 +15,7 @@ const Index = () => {
     subcategories,
     timeEntries,
     timerState,
+    goals,
     isLoaded,
     addCategory,
     updateCategory,
@@ -24,10 +25,16 @@ const Index = () => {
     deleteSubcategory,
     startTimer,
     stopTimer,
+    pauseTimer,
+    resumeTimer,
     updateTimerStartTime,
+    switchPomodoroPhase,
+    updatePomodoroElapsed,
     addManualEntry,
     deleteTimeEntry,
     updateTimeEntry,
+    addGoal,
+    deleteGoal,
     getSubcategoriesForCategory,
     getCategoryById,
     getSubcategoryById,
@@ -53,12 +60,19 @@ const Index = () => {
             subcategories={subcategories}
             timeEntries={timeEntries}
             timerState={timerState}
+            goals={goals}
             onStartTimer={startTimer}
             onStopTimer={stopTimer}
+            onPauseTimer={pauseTimer}
+            onResumeTimer={resumeTimer}
             onUpdateTimerStartTime={updateTimerStartTime}
+            onSwitchPomodoroPhase={switchPomodoroPhase}
+            onUpdatePomodoroElapsed={updatePomodoroElapsed}
             onAddManualEntry={addManualEntry}
             onDeleteEntry={deleteTimeEntry}
             onUpdateEntry={updateTimeEntry}
+            onAddGoal={addGoal}
+            onDeleteGoal={deleteGoal}
             getSubcategoriesForCategory={getSubcategoriesForCategory}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
