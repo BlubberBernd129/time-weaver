@@ -76,7 +76,7 @@ export function DayTimeline({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative pr-1 scrollbar-thin scrollbar-track-secondary scrollbar-thumb-primary/50 hover:scrollbar-thumb-primary">
+      <div className="flex-1 overflow-y-auto relative pr-1 scrollbar-thin">
         <div
           className="relative"
           style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
