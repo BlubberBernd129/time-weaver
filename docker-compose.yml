@@ -2,10 +2,12 @@
 # Self-Hosted Zeit-Tracking Anwendung
 # 
 # Verwendung:
-# 1. docker-compose up -d --build
-# 2. Öffne http://localhost:3000 im Browser
+# 1. Kopiere .env.example zu .env und passe die Werte an
+# 2. docker-compose up -d --build
+# 3. Öffne http://localhost:3000 im Browser
 #
-# Daten werden im 'data' Verzeichnis persistiert
+# Für Updates:
+# docker-compose down && docker-compose up -d --build
 
 version: '3.8'
 
@@ -14,27 +16,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-}
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID:-}
+    image: timetracker:latest
     container_name: timetracker
     ports:
-      - "3000:80"
-    volumes:
-      # Für zukünftige Backend-Integration:
-      # - ./data:/app/data
+      - "${PORT:-3000}:80"
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.timetracker.description=Zeit-Tracking Anwendung"
+      - "com.timetracker.version=1.0.0"
 
-# Optional: PostgreSQL für zukünftige Backend-Integration
-#  postgres:
-#    image: postgres:15-alpine
-#    container_name: timetracker-db
-#    environment:
-#      POSTGRES_USER: timetracker
-#      POSTGRES_PASSWORD: your-secure-password
-#      POSTGRES_DB: timetracker
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
-#    restart: unless-stopped
-
-# volumes:
-#   postgres_data:
+networks:
+  default:
+    name: timetracker-network
