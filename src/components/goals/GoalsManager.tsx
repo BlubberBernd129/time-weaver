@@ -3,7 +3,7 @@ import { Target, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Category, Goal, TimeEntry } from '@/types/timetracker';
+import { Category, Subcategory, Goal, TimeEntry } from '@/types/timetracker';
 import { formatHoursMinutes, getEntriesForDay, getEntriesForWeek } from '@/lib/timeUtils';
 import {
   Dialog,
@@ -23,21 +23,26 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface GoalsManagerProps {
   categories: Category[];
+  subcategories: Subcategory[];
   goals: Goal[];
   timeEntries: TimeEntry[];
-  onAddGoal: (categoryId: string, type: 'daily' | 'weekly', targetMinutes: number) => void;
+  onAddGoal: (categoryId: string, type: 'daily' | 'weekly', targetMinutes: number, subcategoryId?: string) => void;
   onDeleteGoal: (id: string) => void;
+  getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
 }
 
 export function GoalsManager({
   categories,
+  subcategories,
   goals,
   timeEntries,
   onAddGoal,
   onDeleteGoal,
+  getSubcategoriesForCategory,
 }: GoalsManagerProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [goalType, setGoalType] = useState<'daily' | 'weekly'>('daily');
   const [targetHours, setTargetHours] = useState('');
 
@@ -46,14 +51,20 @@ export function GoalsManager({
   // Filter out pause entries
   const activeEntries = timeEntries.filter(e => !e.isPause);
 
+  const availableSubcategories = selectedCategory 
+    ? getSubcategoriesForCategory(selectedCategory) 
+    : [];
+
   const handleAddGoal = () => {
     if (!selectedCategory || !targetHours) return;
     
     const minutes = parseFloat(targetHours) * 60;
-    onAddGoal(selectedCategory, goalType, minutes);
+    const subId = selectedSubcategory && selectedSubcategory !== 'all' ? selectedSubcategory : undefined;
+    onAddGoal(selectedCategory, goalType, minutes, subId);
     
     setDialogOpen(false);
     setSelectedCategory('');
+    setSelectedSubcategory('');
     setTargetHours('');
   };
 
@@ -62,8 +73,14 @@ export function GoalsManager({
       ? getEntriesForDay(activeEntries, today)
       : getEntriesForWeek(activeEntries, today);
     
-    const categoryEntries = entries.filter(e => e.categoryId === goal.categoryId);
-    const totalSeconds = categoryEntries.reduce((acc, e) => acc + e.duration, 0);
+    // Filter by category, and optionally by subcategory
+    const filteredEntries = entries.filter(e => {
+      if (e.categoryId !== goal.categoryId) return false;
+      if (goal.subcategoryId && e.subcategoryId !== goal.subcategoryId) return false;
+      return true;
+    });
+    
+    const totalSeconds = filteredEntries.reduce((acc, e) => acc + e.duration, 0);
     const currentMinutes = totalSeconds / 60;
     const percentage = Math.min((currentMinutes / goal.targetMinutes) * 100, 100);
     
@@ -77,6 +94,10 @@ export function GoalsManager({
     const category = categories.find(c => c.id === goal.categoryId);
     if (!category) return null;
 
+    const subcategory = goal.subcategoryId 
+      ? subcategories.find(s => s.id === goal.subcategoryId)
+      : null;
+
     const { current, percentage } = calculateProgress(goal);
     const targetSeconds = goal.targetMinutes * 60;
 
@@ -88,7 +109,12 @@ export function GoalsManager({
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: category.color }}
             />
-            <span className="font-medium">{category.name}</span>
+            <div className="flex flex-col">
+              <span className="font-medium">{category.name}</span>
+              {subcategory && (
+                <span className="text-xs text-muted-foreground">{subcategory.name}</span>
+              )}
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -143,7 +169,13 @@ export function GoalsManager({
             <div className="space-y-4 pt-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Kategorie</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select 
+                  value={selectedCategory} 
+                  onValueChange={(value) => {
+                    setSelectedCategory(value);
+                    setSelectedSubcategory('');
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Kategorie wählen" />
                   </SelectTrigger>
@@ -162,6 +194,25 @@ export function GoalsManager({
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedCategory && availableSubcategories.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Unterkategorie (optional)</label>
+                  <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Alle Unterkategorien" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle Unterkategorien</SelectItem>
+                      {availableSubcategories.map((sub) => (
+                        <SelectItem key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Zeitraum</label>

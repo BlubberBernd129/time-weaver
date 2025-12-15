@@ -13,10 +13,16 @@
 git clone <your-repo-url>
 cd timetracker
 
-# 2. Container starten
-docker-compose up -d --build
+# 2. Konfigurationsdatei erstellen
+cp .env.example .env
 
-# 3. App öffnen
+# 3. Optional: Passwort setzen für Zugangsschutz
+# Bearbeite .env und setze VITE_APP_PASSWORD=dein-sicheres-passwort
+
+# 4. Container starten
+docker compose up -d --build
+
+# 5. App öffnen
 # Öffne http://localhost:3000 im Browser
 ```
 
@@ -24,14 +30,41 @@ docker-compose up -d --build
 
 ```bash
 # Logs anzeigen
-docker-compose logs -f
+docker compose logs -f
 
 # Stoppen
-docker-compose down
+docker compose down
 
 # Neustarten
-docker-compose restart
+docker compose restart
 ```
+
+---
+
+## 🔐 Passwortschutz
+
+Die App kann mit einem Passwort geschützt werden, um unbefugten Zugriff zu verhindern.
+
+### Passwort setzen
+
+1. Bearbeite die `.env` Datei
+2. Setze `VITE_APP_PASSWORD=dein-sicheres-passwort`
+3. Starte den Container neu: `docker compose down && docker compose up -d --build`
+
+```bash
+# Beispiel .env
+VITE_APP_PASSWORD=MeinGeheimesPasswort123
+```
+
+### Passwort deaktivieren
+
+Entferne den Wert oder lass das Feld leer:
+
+```bash
+VITE_APP_PASSWORD=
+```
+
+**Hinweis:** Das Passwort wird zur Build-Zeit in die App kompiliert. Bei Änderungen muss der Container neu gebaut werden.
 
 ---
 

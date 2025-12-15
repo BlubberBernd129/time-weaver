@@ -96,13 +96,16 @@ export function useTimeTracker() {
   const deleteSubcategory = useCallback((id: string) => {
     const updatedSubcategories = subcategories.filter(s => s.id !== id);
     const updatedEntries = timeEntries.filter(e => e.subcategoryId !== id);
+    const updatedGoals = goals.filter(g => g.subcategoryId !== id);
     
     setSubcategories(updatedSubcategories);
     setTimeEntries(updatedEntries);
+    setGoals(updatedGoals);
     
     saveSubcategories(updatedSubcategories);
     saveTimeEntries(updatedEntries);
-  }, [subcategories, timeEntries]);
+    saveGoals(updatedGoals);
+  }, [subcategories, timeEntries, goals]);
 
   // Timer operations
   const startTimer = useCallback((categoryId: string, subcategoryId: string, pomodoroMode: boolean = false) => {
@@ -284,13 +287,18 @@ export function useTimeTracker() {
   }, [timeEntries]);
 
   // Goals operations
-  const addGoal = useCallback((categoryId: string, type: 'daily' | 'weekly', targetMinutes: number) => {
-    // Remove existing goal for same category and type
-    const filteredGoals = goals.filter(g => !(g.categoryId === categoryId && g.type === type));
+  const addGoal = useCallback((categoryId: string, type: 'daily' | 'weekly', targetMinutes: number, subcategoryId?: string) => {
+    // Remove existing goal for same category, subcategory and type
+    const filteredGoals = goals.filter(g => !(
+      g.categoryId === categoryId && 
+      g.type === type && 
+      g.subcategoryId === subcategoryId
+    ));
     
     const newGoal: Goal = {
       id: generateId('goal'),
       categoryId,
+      subcategoryId,
       type,
       targetMinutes,
       createdAt: new Date(),
