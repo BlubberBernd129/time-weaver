@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, ChevronDown, ChevronRight, FolderTree } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, FolderTree } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Collapsible,
   CollapsibleContent,
@@ -52,6 +62,10 @@ export function CategoryManager({
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [addSubcategoryOpen, setAddSubcategoryOpen] = useState<string | null>(null);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  
+  // Delete confirmation state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'category' | 'subcategory'; id: string; name: string } | null>(null);
 
   const toggleExpanded = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -80,8 +94,65 @@ export function CategoryManager({
     }
   };
 
+  const confirmDelete = (type: 'category' | 'subcategory', id: string, name: string) => {
+    setItemToDelete({ type, id, name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!itemToDelete) return;
+    
+    if (itemToDelete.type === 'category') {
+      onDeleteCategory(itemToDelete.id);
+    } else {
+      onDeleteSubcategory(itemToDelete.id);
+    }
+    
+    setDeleteConfirmOpen(false);
+    setItemToDelete(null);
+  };
+
   return (
     <div className="space-y-4 lg:space-y-6">
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {itemToDelete?.type === 'category' ? 'Kategorie' : 'Unterkategorie'} löschen?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete?.type === 'category' ? (
+                <>
+                  Möchtest du die Kategorie <strong>"{itemToDelete?.name}"</strong> wirklich löschen?
+                  <br /><br />
+                  <span className="text-destructive">
+                    Alle zugehörigen Unterkategorien, Zeiteinträge und Ziele werden ebenfalls gelöscht!
+                  </span>
+                </>
+              ) : (
+                <>
+                  Möchtest du die Unterkategorie <strong>"{itemToDelete?.name}"</strong> wirklich löschen?
+                  <br /><br />
+                  <span className="text-destructive">
+                    Alle zugehörigen Zeiteinträge werden ebenfalls gelöscht!
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -164,7 +235,7 @@ export function CategoryManager({
                         size="iconSm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteCategory(category.id);
+                          confirmDelete('category', category.id, category.name);
                         }}
                         className="text-muted-foreground hover:text-destructive"
                       >
@@ -190,7 +261,7 @@ export function CategoryManager({
                         <Button
                           variant="ghost"
                           size="iconSm"
-                          onClick={() => onDeleteSubcategory(sub.id)}
+                          onClick={() => confirmDelete('subcategory', sub.id, sub.name)}
                           className="text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="w-3 h-3" />

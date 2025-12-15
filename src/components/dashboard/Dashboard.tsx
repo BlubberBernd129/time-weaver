@@ -113,10 +113,12 @@ export function Dashboard({
           {/* Goals */}
           <GoalsManager
             categories={categories}
+            subcategories={subcategories}
             goals={goals}
             timeEntries={timeEntries}
             onAddGoal={onAddGoal}
             onDeleteGoal={onDeleteGoal}
+            getSubcategoriesForCategory={getSubcategoriesForCategory}
           />
         </div>
 

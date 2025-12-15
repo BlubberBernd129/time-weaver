@@ -52,6 +52,7 @@ export interface TimerState {
 export interface Goal {
   id: string;
   categoryId: string;
+  subcategoryId?: string; // Optional - if set, goal is for specific subcategory
   type: 'daily' | 'weekly';
   targetMinutes: number;
   createdAt: Date;
