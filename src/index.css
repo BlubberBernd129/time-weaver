@@ -182,4 +182,13 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(174 72% 46% / 0.6);
   }
+
+  /* Safe area for mobile devices */
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
 }

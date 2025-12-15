@@ -60,9 +60,9 @@ export function Dashboard({
   getSubcategoryById,
 }: DashboardProps) {
   return (
-    <div className="flex gap-6 h-[calc(100vh-4rem)]">
-      {/* Left: Day Timeline */}
-      <div className="w-80 flex-shrink-0">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:h-[calc(100vh-4rem)]">
+      {/* Left: Day Timeline - Hidden on mobile */}
+      <div className="hidden xl:block w-80 flex-shrink-0">
         <DayTimeline
           timeEntries={timeEntries}
           timerState={timerState}
@@ -72,12 +72,12 @@ export function Dashboard({
       </div>
 
       {/* Right: Main Content */}
-      <div className="flex-1 space-y-6 overflow-y-auto pr-2">
+      <div className="flex-1 space-y-4 lg:space-y-6 lg:overflow-y-auto lg:pr-2">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <LayoutDashboard className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <h1 className="text-xl lg:text-2xl font-bold">Dashboard</h1>
           </div>
           <ManualEntryDialog
             categories={categories}
@@ -94,7 +94,7 @@ export function Dashboard({
         />
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* Timer */}
           <TimerDisplay
             categories={categories}

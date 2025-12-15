@@ -81,16 +81,16 @@ export function CategoryManager({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <FolderTree className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Kategorien</h1>
+          <h1 className="text-xl lg:text-2xl font-bold">Kategorien</h1>
         </div>
         <Dialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="w-4 h-4" />
               Neue Kategorie
             </Button>

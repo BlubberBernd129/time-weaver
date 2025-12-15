@@ -87,18 +87,18 @@ export function CalendarView({
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-4 lg:space-y-6 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <CalendarIcon className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Kalender</h1>
+          <h1 className="text-xl lg:text-2xl font-bold">Kalender</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Category Filter */}
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[180px] bg-secondary border-border">
+            <SelectTrigger className="w-[140px] sm:w-[180px] bg-secondary border-border">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent>
@@ -135,7 +135,7 @@ export function CalendarView({
         <Button variant="outline" size="icon" onClick={handlePrevious}>
           <ChevronLeft className="w-5 h-5" />
         </Button>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-sm lg:text-lg font-semibold text-center">
           {viewMode === 'week' 
             ? `${format(weekDays[0], 'dd.MM.')} - ${format(weekDays[6], 'dd.MM.yyyy', { locale: de })}`
             : formatMonthYear(currentDate)
@@ -227,7 +227,7 @@ function WeekView({
   const today = new Date();
 
   return (
-    <div className="grid grid-cols-7 gap-3 h-full">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 lg:gap-3 h-full">
       {days.map((day) => {
         const entries = getEntriesForDay(day);
         const isToday = isSameDay(day, today);
@@ -242,25 +242,25 @@ function WeekView({
           >
             <div
               className={cn(
-                "glass-card p-3 h-full min-h-[400px] flex flex-col",
+                "glass-card p-2 lg:p-3 h-full min-h-[200px] lg:min-h-[400px] flex flex-col",
                 isToday && "ring-2 ring-primary"
               )}
             >
-              <div className="text-center mb-3 pb-2 border-b border-border">
-                <div className="text-xs text-muted-foreground uppercase">
+              <div className="text-center mb-2 lg:mb-3 pb-2 border-b border-border">
+                <div className="text-[10px] lg:text-xs text-muted-foreground uppercase">
                   {formatWeekdayShort(day)}
                 </div>
                 <div className={cn(
-                  "text-lg font-semibold",
+                  "text-base lg:text-lg font-semibold",
                   isToday && "text-primary"
                 )}>
                   {format(day, 'd')}
                 </div>
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto">
+              <div className="flex-1 space-y-1 lg:space-y-2 overflow-y-auto">
                 {entries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">
+                  <p className="text-[10px] lg:text-xs text-muted-foreground text-center py-2 lg:py-4">
                     Keine Einträge
                   </p>
                 ) : (
@@ -275,7 +275,7 @@ function WeekView({
                           e.stopPropagation();
                           onEntryClick(entry);
                         }}
-                        className="time-block p-2 text-xs cursor-pointer hover:brightness-110 transition-all"
+                        className="time-block p-1.5 lg:p-2 text-[10px] lg:text-xs cursor-pointer hover:brightness-110 transition-all"
                         style={{ 
                           backgroundColor: `${category?.color}15`,
                           borderLeftColor: category?.color,
@@ -283,10 +283,10 @@ function WeekView({
                         }}
                       >
                         <div className="font-medium truncate">{subcategory?.name}</div>
-                        <div className="text-muted-foreground">
+                        <div className="text-muted-foreground hidden sm:block">
                           {formatTime(new Date(entry.startTime))} - {entry.endTime && formatTime(new Date(entry.endTime))}
                         </div>
-                        <div className="font-mono mt-1">
+                        <div className="font-mono mt-0.5 lg:mt-1">
                           {formatDuration(entry.duration)}
                         </div>
                       </div>
@@ -335,18 +335,18 @@ function MonthView({
   const weekDayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col">
+    <div className="glass-card p-2 lg:p-4 h-full flex flex-col">
       {/* Header */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
+      <div className="grid grid-cols-7 gap-1 lg:gap-2 mb-2">
         {weekDayNames.map((name) => (
-          <div key={name} className="text-center text-xs text-muted-foreground font-medium py-2">
+          <div key={name} className="text-center text-[10px] lg:text-xs text-muted-foreground font-medium py-1 lg:py-2">
             {name}
           </div>
         ))}
       </div>
 
       {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-2 flex-1">
+      <div className="grid grid-cols-7 gap-1 lg:gap-2 flex-1">
         {days.map((day) => {
           const entries = getEntriesForDay(day);
           const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -363,22 +363,22 @@ function MonthView({
             >
               <div
                 className={cn(
-                  "min-h-[100px] p-2 rounded-lg border border-border/50 transition-colors",
+                  "min-h-[60px] lg:min-h-[100px] p-1 lg:p-2 rounded-lg border border-border/50 transition-colors",
                   !isCurrentMonth && "opacity-40",
                   isToday && "ring-2 ring-primary",
                   "hover:bg-secondary/30"
                 )}
               >
                 <div className={cn(
-                  "text-sm font-medium mb-2",
+                  "text-xs lg:text-sm font-medium mb-1 lg:mb-2",
                   isToday && "text-primary"
                 )}>
                   {format(day, 'd')}
                 </div>
 
                 {entries.length > 0 && (
-                  <div className="space-y-1">
-                    {entries.slice(0, 3).map((entry) => {
+                  <div className="space-y-0.5 lg:space-y-1">
+                    {entries.slice(0, 2).map((entry) => {
                       const category = getCategoryById(entry.categoryId);
                       const subcategory = getSubcategoryById(entry.subcategoryId);
                       return (
@@ -388,25 +388,25 @@ function MonthView({
                             e.stopPropagation();
                             onEntryClick(entry);
                           }}
-                          className="h-5 rounded px-1 flex items-center gap-1 cursor-pointer hover:brightness-110 transition-all"
+                          className="h-4 lg:h-5 rounded px-1 flex items-center gap-1 cursor-pointer hover:brightness-110 transition-all"
                           style={{ backgroundColor: `${category?.color}30` }}
                           title={`${subcategory?.name} - ${formatDuration(entry.duration)}`}
                         >
                           <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            className="w-1.5 lg:w-2 h-1.5 lg:h-2 rounded-full flex-shrink-0"
                             style={{ backgroundColor: category?.color }}
                           />
-                          <span className="text-[9px] truncate">{subcategory?.name}</span>
+                          <span className="text-[8px] lg:text-[9px] truncate">{subcategory?.name}</span>
                         </div>
                       );
                     })}
-                    {entries.length > 3 && (
-                      <div className="text-[10px] text-muted-foreground">
-                        +{entries.length - 3} mehr
+                    {entries.length > 2 && (
+                      <div className="text-[8px] lg:text-[10px] text-muted-foreground">
+                        +{entries.length - 2} mehr
                       </div>
                     )}
                     {totalDuration > 0 && (
-                      <div className="text-[10px] font-mono text-muted-foreground mt-1">
+                      <div className="text-[8px] lg:text-[10px] font-mono text-muted-foreground mt-0.5 lg:mt-1 hidden sm:block">
                         {formatDuration(totalDuration)}
                       </div>
                     )}
