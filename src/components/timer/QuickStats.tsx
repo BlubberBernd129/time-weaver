@@ -37,21 +37,21 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 gap-2 lg:gap-4">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <div
             key={index}
-            className="stat-card animate-fade-in"
+            className="stat-card animate-fade-in p-3 lg:p-4"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-sm text-muted-foreground">{stat.label}</span>
-              <Icon className={`w-5 h-5 ${stat.color}`} />
+            <div className="flex items-start justify-between mb-2 lg:mb-3">
+              <span className="text-[10px] lg:text-sm text-muted-foreground">{stat.label}</span>
+              <Icon className={`w-4 lg:w-5 h-4 lg:h-5 ${stat.color}`} />
             </div>
-            <div className="text-2xl font-bold mb-1">{stat.value}</div>
-            <div className="text-xs text-muted-foreground">{stat.sublabel}</div>
+            <div className="text-lg lg:text-2xl font-bold mb-0.5 lg:mb-1">{stat.value}</div>
+            <div className="text-[10px] lg:text-xs text-muted-foreground truncate">{stat.sublabel}</div>
           </div>
         );
       })}

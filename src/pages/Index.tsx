@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { MobileNav, MobileBottomNav } from '@/components/layout/MobileNav';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import { CalendarView } from '@/components/calendar/CalendarView';
@@ -121,8 +122,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Desktop Sidebar */}
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
-      <main className="ml-64 p-8">
+      
+      {/* Mobile Navigation */}
+      <MobileNav currentView={currentView} onViewChange={setCurrentView} />
+      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />
+      
+      {/* Main Content */}
+      <main className="lg:ml-64 pt-16 pb-20 lg:pt-0 lg:pb-0 p-4 lg:p-8">
         <div className="max-w-6xl mx-auto">
           {renderView()}
         </div>

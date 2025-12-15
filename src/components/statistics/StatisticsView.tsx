@@ -68,15 +68,15 @@ export function StatisticsView({
   const maxTime = Math.max(...stats.byCategory.map(c => c.totalTime), 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <BarChart3 className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Statistik</h1>
+          <h1 className="text-xl lg:text-2xl font-bold">Statistik</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <ExportDialog
             timeEntries={activeEntries}
             categories={categories}
@@ -108,14 +108,14 @@ export function StatisticsView({
       </div>
 
       {/* Total Time Card */}
-      <div className="glass-card p-6 text-center">
-        <div className="text-sm text-muted-foreground mb-2">
+      <div className="glass-card p-4 lg:p-6 text-center">
+        <div className="text-xs lg:text-sm text-muted-foreground mb-2">
           Gesamtzeit {period === 'week' ? 'diese Woche' : 'diesen Monat'}
         </div>
-        <div className="text-4xl font-bold gradient-text">
+        <div className="text-2xl lg:text-4xl font-bold gradient-text">
           {formatHoursMinutes(stats.totalTime)}
         </div>
-        <div className="text-sm text-muted-foreground mt-2">
+        <div className="text-xs lg:text-sm text-muted-foreground mt-2">
           {stats.byCategory.length} Kategorien aktiv
         </div>
       </div>
@@ -225,18 +225,18 @@ export function StatisticsView({
       {/* Weekly Breakdown for Month View */}
       {period === 'month' && monthlyStats.weeklyBreakdown.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-lg">Wochenübersicht</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h3 className="font-semibold text-base lg:text-lg">Wochenübersicht</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {monthlyStats.weeklyBreakdown.map((week, index) => (
               <div
                 key={index}
-                className="glass-card p-4 animate-fade-in"
+                className="glass-card p-3 lg:p-4 animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="text-sm text-muted-foreground mb-2">
+                <div className="text-xs lg:text-sm text-muted-foreground mb-2">
                   {format(week.weekStart, 'dd.MM.')} - {format(week.weekEnd, 'dd.MM.')}
                 </div>
-                <div className="text-xl font-bold">
+                <div className="text-lg lg:text-xl font-bold">
                   {formatHoursMinutes(week.totalTime)}
                 </div>
                 <div className="flex gap-1 mt-2">

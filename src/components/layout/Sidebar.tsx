@@ -17,7 +17,7 @@ const navItems: { id: ViewMode; label: string; icon: React.ElementType }[] = [
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
