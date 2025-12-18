@@ -4,6 +4,7 @@
 
 ### Voraussetzungen
 - Docker & Docker Compose installiert
+- PocketBase Server (selbst gehostet oder Remote)
 - Git (optional)
 
 ### Installation
@@ -16,8 +17,8 @@ cd timetracker
 # 2. Konfigurationsdatei erstellen
 cp .env.example .env
 
-# 3. Optional: Passwort setzen für Zugangsschutz
-# Bearbeite .env und setze VITE_APP_PASSWORD=dein-sicheres-passwort
+# 3. PocketBase URL konfigurieren
+# Bearbeite .env und setze VITE_POCKETBASE_URL=https://deine-pocketbase-url
 
 # 4. Container starten
 docker compose up -d --build
@@ -37,34 +38,86 @@ docker compose down
 
 # Neustarten
 docker compose restart
+
+# Update mit Neuaufbau
+docker compose down && docker compose up -d --build
 ```
 
 ---
 
-## 🔐 Passwortschutz
+## 🗄️ PocketBase Setup
 
-Die App kann mit einem Passwort geschützt werden, um unbefugten Zugriff zu verhindern.
+Die App verwendet PocketBase als Backend für persistente Datenspeicherung und Benutzerauthentifizierung.
 
-### Passwort setzen
+### PocketBase Collections erstellen
 
-1. Bearbeite die `.env` Datei
-2. Setze `VITE_APP_PASSWORD=dein-sicheres-passwort`
-3. Starte den Container neu: `docker compose down && docker compose up -d --build`
+Erstelle folgende Collections in deinem PocketBase Admin-Panel:
 
-```bash
-# Beispiel .env
-VITE_APP_PASSWORD=MeinGeheimesPasswort123
-```
+#### 1. `categories`
+| Feld | Typ | Optionen |
+|------|-----|----------|
+| name | Text | Required |
+| color | Text | Required |
+| icon | Text | Optional |
 
-### Passwort deaktivieren
+#### 2. `subcategories`
+| Feld | Typ | Optionen |
+|------|-----|----------|
+| category_id | Text | Required |
+| name | Text | Required |
 
-Entferne den Wert oder lass das Feld leer:
+#### 3. `time_entries`
+| Feld | Typ | Optionen |
+|------|-----|----------|
+| category_id | Text | Required |
+| subcategory_id | Text | Optional |
+| start_time | Text | Required |
+| end_time | Text | Optional |
+| duration | Number | Required |
+| description | Text | Optional |
+| is_running | Boolean | Default: false |
+| is_pause | Boolean | Default: false |
+| pause_periods | JSON | Optional |
 
-```bash
-VITE_APP_PASSWORD=
-```
+#### 4. `goals`
+| Feld | Typ | Optionen |
+|------|-----|----------|
+| category_id | Text | Required |
+| subcategory_id | Text | Optional |
+| target_minutes | Number | Required |
+| period | Text | Required (daily/weekly) |
 
-**Hinweis:** Das Passwort wird zur Build-Zeit in die App kompiliert. Bei Änderungen muss der Container neu gebaut werden.
+### API Rules konfigurieren
+
+Für jede Collection (außer `users`) setze folgende API Rules:
+
+- **List/Search**: `@request.auth.id != ""`
+- **View**: `@request.auth.id != ""`
+- **Create**: `@request.auth.id != ""`
+- **Update**: `@request.auth.id != ""`
+- **Delete**: `@request.auth.id != ""`
+
+Dies erlaubt allen eingeloggten Benutzern Zugriff auf die Daten.
+
+### Benutzer anlegen
+
+1. Öffne PocketBase Admin: `https://deine-url/_/`
+2. Gehe zu **Collections** → **users**
+3. Klicke **New record**
+4. Trage E-Mail und Passwort ein
+
+---
+
+## 🔐 Authentifizierung
+
+Die App verwendet PocketBase-Authentifizierung. Beim Starten der App erscheint ein Login-Screen.
+
+### Login
+- E-Mail und Passwort eingeben
+- Klicke "Anmelden"
+
+### Logout
+- Klicke "Abmelden" in der Sidebar (Desktop) oder im Menü (Mobile)
 
 ---
 
@@ -142,7 +195,7 @@ npm run build
 
 ### Timer stoppen
 - **"Timer stoppen"** klicken
-- Der Zeiteintrag wird automatisch gespeichert
+- Der Zeiteintrag wird automatisch in PocketBase gespeichert
 
 ### Manueller Eintrag
 1. **"Manuell eintragen"** Button
@@ -150,13 +203,22 @@ npm run build
 3. Datum, Start- und Endzeit eingeben
 4. Optional: Beschreibung hinzufügen
 
+### Pause-Funktion
+- Während ein Timer läuft: **"Pause"** klicken
+- Pausierte Zeit wird separat erfasst und von Statistiken ausgeschlossen
+
 ---
 
 ## 📊 Statistiken
 
 - **Wochenansicht**: Gesamtzeit pro Kategorie mit Unterkategorien
 - **Monatsansicht**: Überblick mit Wochenvergleich
+- **Trend-Analyse**: 8-Wochen-Verlauf
+- **Wochenvergleich**: Aktuelle vs. vorherige Woche
 - Klicke auf eine Kategorie um Unterkategorien anzuzeigen
+
+### Export
+- CSV oder PDF Export für Berichte
 
 ---
 
@@ -165,44 +227,32 @@ npm run build
 - **Wochenansicht**: Detaillierte Tagesansicht
 - **Monatsansicht**: Schnellübersicht aller Einträge
 - Filter nach Kategorien möglich
+- Einträge per Drag & Drop erstellen
+
+---
+
+## 🎯 Ziele setzen
+
+1. Gehe zu **Kategorien**
+2. Wähle eine Kategorie oder Unterkategorie
+3. Setze **tägliche** oder **wöchentliche** Ziele
+4. Fortschritt wird im Dashboard angezeigt
 
 ---
 
 ## 🔧 Konfiguration
 
-Die App speichert alle Daten lokal im Browser (localStorage).
+### Umgebungsvariablen (.env)
 
-### Für persistente Speicherung (zukünftig)
-Aktiviere PostgreSQL in der `docker-compose.yml`:
+| Variable | Beschreibung | Standard |
+|----------|-------------|----------|
+| `PORT` | Port für die App | 3000 |
+| `VITE_POCKETBASE_URL` | PocketBase Server URL | https://api.nick-cloud.org |
 
-```yaml
-postgres:
-  image: postgres:15-alpine
-  environment:
-    POSTGRES_USER: timetracker
-    POSTGRES_PASSWORD: dein-sicheres-passwort
-    POSTGRES_DB: timetracker
-  volumes:
-    - postgres_data:/var/lib/postgresql/data
-```
+### Datenpeicherung
 
----
-
-## 🔌 API (geplant)
-
-Die REST API wird in einer zukünftigen Version verfügbar sein:
-
-```
-GET    /api/categories
-POST   /api/categories
-GET    /api/categories/:id/subcategories
-POST   /api/categories/:id/subcategories
-GET    /api/entries
-POST   /api/entries
-DELETE /api/entries/:id
-GET    /api/stats/weekly
-GET    /api/stats/monthly
-```
+- **Mit PocketBase**: Alle Daten werden bidirektional synchronisiert
+- **Offline/Fallback**: Lokale Speicherung im Browser (localStorage)
 
 ---
 
