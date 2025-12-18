@@ -1,49 +1,71 @@
 import { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { pb, login, isAuthenticated, logout } from '@/lib/pocketbase';
 
 interface PasswordGateProps {
   children: React.ReactNode;
 }
 
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || '';
-const AUTH_KEY = 'timetracker_authenticated';
-
 export function PasswordGate({ children }: PasswordGateProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // If no password is set, allow access
-    if (!APP_PASSWORD) {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      return;
-    }
-
-    // Check if already authenticated in this session
-    const authenticated = sessionStorage.getItem(AUTH_KEY);
-    if (authenticated === 'true') {
-      setIsAuthenticated(true);
+    // Check if already authenticated via PocketBase
+    if (isAuthenticated()) {
+      setIsAuth(true);
     }
     setIsLoading(false);
+
+    // Listen for auth changes
+    const unsubscribe = pb.authStore.onChange(() => {
+      setIsAuth(pb.authStore.isValid);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (password === APP_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, 'true');
-      setIsAuthenticated(true);
+    try {
+      await login(email, password);
       toast.success('Erfolgreich angemeldet');
-    } else {
-      toast.error('Falsches Passwort');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error?.message || 'Anmeldung fehlgeschlagen');
       setPassword('');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleQuickLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      await login('nickbisch129@gmail.com', 'se0912ce');
+      toast.success('Schnell-Login erfolgreich');
+    } catch (error: any) {
+      console.error('Quick login error:', error);
+      toast.error(error?.message || 'Schnell-Login fehlgeschlagen');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Abgemeldet');
   };
 
   if (isLoading) {
@@ -54,7 +76,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuth) {
     return <>{children}</>;
   }
 
@@ -69,11 +91,22 @@ export function PasswordGate({ children }: PasswordGateProps) {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-2">TimeTracker</h1>
             <p className="text-muted-foreground">
-              Bitte gib das Passwort ein, um fortzufahren
+              Bitte melde dich an, um fortzufahren
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-4">
+            <div>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="E-Mail eingeben..."
+                className="bg-secondary border-border"
+                autoFocus
+                disabled={isSubmitting}
+              />
+            </div>
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}
@@ -81,7 +114,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Passwort eingeben..."
                 className="pr-10 bg-secondary border-border"
-                autoFocus
+                disabled={isSubmitting}
               />
               <button
                 type="button"
@@ -92,12 +125,28 @@ export function PasswordGate({ children }: PasswordGateProps) {
               </button>
             </div>
             
-            <Button type="submit" className="w-full">
-              Anmelden
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Anmelden...' : 'Anmelden'}
             </Button>
           </form>
+
+          <div className="w-full border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleQuickLogin}
+              disabled={isSubmitting}
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Schnell-Login (Dev)
+            </Button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+// Export logout for use in other components
+export { logout };

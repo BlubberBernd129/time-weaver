@@ -16,17 +16,17 @@ RUN npm ci --legacy-peer-deps
 # Kopiere Source-Code
 COPY . .
 
-# Build-Argumente für Umgebungsvariablen (optional)
+# Build-Argumente für Umgebungsvariablen
+ARG VITE_POCKETBASE_URL="https://api.nick-cloud.org"
 ARG VITE_SUPABASE_URL=""
 ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
 ARG VITE_SUPABASE_PROJECT_ID=""
-ARG VITE_APP_PASSWORD=""
 
 # Setze Umgebungsvariablen für Build
+ENV VITE_POCKETBASE_URL=$VITE_POCKETBASE_URL
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
-ENV VITE_APP_PASSWORD=$VITE_APP_PASSWORD
 
 # Build für Production
 RUN npm run build
