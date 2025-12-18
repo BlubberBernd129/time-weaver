@@ -13,6 +13,7 @@ import {
   saveGoals,
   generateId,
 } from '@/lib/storage';
+import { pb, isAuthenticated } from '@/lib/pocketbase';
 
 export function useTimeTracker() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -22,14 +23,83 @@ export function useTimeTracker() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load data on mount
+  // Load data from PocketBase or localStorage
   useEffect(() => {
-    setCategories(getCategories());
-    setSubcategories(getSubcategories());
-    setTimeEntries(getTimeEntries());
-    setTimerState(getTimerState());
-    setGoals(getGoals());
-    setIsLoaded(true);
+    const loadData = async () => {
+      if (isAuthenticated()) {
+        try {
+          // Load categories from PocketBase
+          const pbCategories = await pb.collection('categories').getFullList();
+          const mappedCategories: Category[] = pbCategories.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            color: c.color,
+            icon: c.icon,
+            createdAt: new Date(c.created),
+          }));
+          setCategories(mappedCategories);
+
+          // Load subcategories from PocketBase
+          const pbSubcategories = await pb.collection('subcategories').getFullList();
+          const mappedSubcategories: Subcategory[] = pbSubcategories.map((s: any) => ({
+            id: s.id,
+            categoryId: s.category_id,
+            name: s.name,
+            createdAt: new Date(s.created),
+          }));
+          setSubcategories(mappedSubcategories);
+
+          // Load time entries from PocketBase
+          const pbEntries = await pb.collection('time_entries').getFullList();
+          const mappedEntries: TimeEntry[] = pbEntries.map((e: any) => ({
+            id: e.id,
+            categoryId: e.category_id,
+            subcategoryId: e.subcategory_id,
+            startTime: new Date(e.start_time),
+            endTime: e.end_time ? new Date(e.end_time) : undefined,
+            duration: e.duration,
+            description: e.description,
+            isRunning: e.is_running,
+            isPause: e.is_pause,
+            pausePeriods: e.pause_periods || [],
+          }));
+          setTimeEntries(mappedEntries);
+
+          // Load goals from PocketBase
+          const pbGoals = await pb.collection('goals').getFullList();
+          const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
+            id: g.id,
+            categoryId: g.category_id,
+            subcategoryId: g.subcategory_id,
+            type: g.type,
+            targetMinutes: g.target_minutes,
+            createdAt: new Date(g.created),
+          }));
+          setGoals(mappedGoals);
+
+          // Timer state stays local (ephemeral)
+          setTimerState(getTimerState());
+        } catch (error) {
+          console.error('Error loading from PocketBase:', error);
+          // Fallback to localStorage
+          setCategories(getCategories());
+          setSubcategories(getSubcategories());
+          setTimeEntries(getTimeEntries());
+          setTimerState(getTimerState());
+          setGoals(getGoals());
+        }
+      } else {
+        // Not authenticated, use localStorage
+        setCategories(getCategories());
+        setSubcategories(getSubcategories());
+        setTimeEntries(getTimeEntries());
+        setTimerState(getTimerState());
+        setGoals(getGoals());
+      }
+      setIsLoaded(true);
+    };
+
+    loadData();
   }, []);
 
   // Category operations
