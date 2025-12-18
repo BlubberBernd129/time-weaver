@@ -34,9 +34,7 @@ export function useTimeTracker() {
       try {
         console.log('Loading data from PocketBase...');
         
-        // Load categories from PocketBase
         const pbCategories = await pb.collection('categories').getFullList();
-        console.log('Loaded categories:', pbCategories);
         const mappedCategories: Category[] = pbCategories.map((c: any) => ({
           id: c.id,
           name: c.name,
@@ -46,9 +44,7 @@ export function useTimeTracker() {
         }));
         setCategories(mappedCategories);
 
-        // Load subcategories from PocketBase
         const pbSubcategories = await pb.collection('subcategories').getFullList();
-        console.log('Loaded subcategories:', pbSubcategories);
         const mappedSubcategories: Subcategory[] = pbSubcategories.map((s: any) => ({
           id: s.id,
           categoryId: s.category_id,
@@ -57,9 +53,7 @@ export function useTimeTracker() {
         }));
         setSubcategories(mappedSubcategories);
 
-        // Load time entries from PocketBase
         const pbEntries = await pb.collection('time_entries').getFullList();
-        console.log('Loaded time entries:', pbEntries);
         const mappedEntries: TimeEntry[] = pbEntries.map((e: any) => ({
           id: e.id,
           categoryId: e.category_id,
@@ -74,9 +68,7 @@ export function useTimeTracker() {
         }));
         setTimeEntries(mappedEntries);
 
-        // Load goals from PocketBase
         const pbGoals = await pb.collection('goals').getFullList();
-        console.log('Loaded goals:', pbGoals);
         const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
           id: g.id,
           categoryId: g.category_id,
@@ -95,20 +87,17 @@ export function useTimeTracker() {
     };
 
     const loadData = async () => {
-      // Timer state always from local
       setTimerState(getTimerState());
 
       if (isAuthenticated()) {
         const success = await loadFromPocketBase();
         if (!success) {
-          // Fallback to localStorage
           setCategories(getCategories());
           setSubcategories(getSubcategories());
           setTimeEntries(getTimeEntries());
           setGoals(getGoals());
         }
       } else {
-        // Not authenticated, use localStorage
         setCategories(getCategories());
         setSubcategories(getSubcategories());
         setTimeEntries(getTimeEntries());
@@ -119,7 +108,6 @@ export function useTimeTracker() {
 
     loadData();
 
-    // Listen for auth changes to reload data
     const unsubscribe = pb.authStore.onChange(async (token) => {
       if (token) {
         console.log('Auth changed, reloading data...');
@@ -132,8 +120,28 @@ export function useTimeTracker() {
     };
   }, []);
 
-  // Category operations
-  const addCategory = useCallback((name: string, color: string) => {
+  // Category operations with PocketBase sync
+  const addCategory = useCallback(async (name: string, color: string) => {
+    if (isAuthenticated()) {
+      try {
+        const record = await pb.collection('categories').create({
+          name,
+          color,
+        });
+        const newCategory: Category = {
+          id: record.id,
+          name: record.name,
+          color: record.color,
+          createdAt: new Date(record.created),
+        };
+        setCategories(prev => [...prev, newCategory]);
+        return newCategory;
+      } catch (error) {
+        console.error('Error creating category in PocketBase:', error);
+      }
+    }
+    
+    // Fallback to local
     const newCategory: Category = {
       id: generateId('cat'),
       name,
@@ -146,7 +154,19 @@ export function useTimeTracker() {
     return newCategory;
   }, [categories]);
 
-  const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
+  const updateCategory = useCallback(async (id: string, updates: Partial<Category>) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('categories').update(id, {
+          name: updates.name,
+          color: updates.color,
+          icon: updates.icon,
+        });
+      } catch (error) {
+        console.error('Error updating category in PocketBase:', error);
+      }
+    }
+    
     const updated = categories.map(c => 
       c.id === id ? { ...c, ...updates } : c
     );
@@ -154,7 +174,25 @@ export function useTimeTracker() {
     saveCategories(updated);
   }, [categories]);
 
-  const deleteCategory = useCallback((id: string) => {
+  const deleteCategory = useCallback(async (id: string) => {
+    if (isAuthenticated()) {
+      try {
+        // Delete related subcategories, entries, goals first
+        const relatedSubs = subcategories.filter(s => s.categoryId === id);
+        const relatedEntries = timeEntries.filter(e => e.categoryId === id);
+        const relatedGoals = goals.filter(g => g.categoryId === id);
+        
+        await Promise.all([
+          ...relatedSubs.map(s => pb.collection('subcategories').delete(s.id).catch(() => {})),
+          ...relatedEntries.map(e => pb.collection('time_entries').delete(e.id).catch(() => {})),
+          ...relatedGoals.map(g => pb.collection('goals').delete(g.id).catch(() => {})),
+          pb.collection('categories').delete(id),
+        ]);
+      } catch (error) {
+        console.error('Error deleting category in PocketBase:', error);
+      }
+    }
+
     const updatedCategories = categories.filter(c => c.id !== id);
     const updatedSubcategories = subcategories.filter(s => s.categoryId !== id);
     const updatedEntries = timeEntries.filter(e => e.categoryId !== id);
@@ -171,8 +209,27 @@ export function useTimeTracker() {
     saveGoals(updatedGoals);
   }, [categories, subcategories, timeEntries, goals]);
 
-  // Subcategory operations
-  const addSubcategory = useCallback((categoryId: string, name: string) => {
+  // Subcategory operations with PocketBase sync
+  const addSubcategory = useCallback(async (categoryId: string, name: string) => {
+    if (isAuthenticated()) {
+      try {
+        const record = await pb.collection('subcategories').create({
+          category_id: categoryId,
+          name,
+        });
+        const newSubcategory: Subcategory = {
+          id: record.id,
+          categoryId: record.category_id,
+          name: record.name,
+          createdAt: new Date(record.created),
+        };
+        setSubcategories(prev => [...prev, newSubcategory]);
+        return newSubcategory;
+      } catch (error) {
+        console.error('Error creating subcategory in PocketBase:', error);
+      }
+    }
+
     const newSubcategory: Subcategory = {
       id: generateId('sub'),
       categoryId,
@@ -185,7 +242,18 @@ export function useTimeTracker() {
     return newSubcategory;
   }, [subcategories]);
 
-  const updateSubcategory = useCallback((id: string, updates: Partial<Subcategory>) => {
+  const updateSubcategory = useCallback(async (id: string, updates: Partial<Subcategory>) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('subcategories').update(id, {
+          name: updates.name,
+          category_id: updates.categoryId,
+        });
+      } catch (error) {
+        console.error('Error updating subcategory in PocketBase:', error);
+      }
+    }
+
     const updated = subcategories.map(s => 
       s.id === id ? { ...s, ...updates } : s
     );
@@ -193,7 +261,22 @@ export function useTimeTracker() {
     saveSubcategories(updated);
   }, [subcategories]);
 
-  const deleteSubcategory = useCallback((id: string) => {
+  const deleteSubcategory = useCallback(async (id: string) => {
+    if (isAuthenticated()) {
+      try {
+        const relatedEntries = timeEntries.filter(e => e.subcategoryId === id);
+        const relatedGoals = goals.filter(g => g.subcategoryId === id);
+        
+        await Promise.all([
+          ...relatedEntries.map(e => pb.collection('time_entries').delete(e.id).catch(() => {})),
+          ...relatedGoals.map(g => pb.collection('goals').delete(g.id).catch(() => {})),
+          pb.collection('subcategories').delete(id),
+        ]);
+      } catch (error) {
+        console.error('Error deleting subcategory in PocketBase:', error);
+      }
+    }
+
     const updatedSubcategories = subcategories.filter(s => s.id !== id);
     const updatedEntries = timeEntries.filter(e => e.subcategoryId !== id);
     const updatedGoals = goals.filter(g => g.subcategoryId !== id);
@@ -207,7 +290,7 @@ export function useTimeTracker() {
     saveGoals(updatedGoals);
   }, [subcategories, timeEntries, goals]);
 
-  // Timer operations
+  // Timer operations (local only - ephemeral)
   const startTimer = useCallback((categoryId: string, subcategoryId: string, pomodoroMode: boolean = false) => {
     const newState: TimerState = {
       isRunning: true,
@@ -221,8 +304,8 @@ export function useTimeTracker() {
       pausePeriods: [],
       pomodoroMode,
       pomodoroPhase: 'work',
-      pomodoroWorkDuration: 1500, // 25 min
-      pomodoroBreakDuration: 300, // 5 min
+      pomodoroWorkDuration: 1500,
+      pomodoroBreakDuration: 300,
       pomodoroElapsed: 0,
     };
     setTimerState(newState);
@@ -274,10 +357,9 @@ export function useTimeTracker() {
     saveTimerState(updatedState);
   }, [timerState]);
 
-  const stopTimer = useCallback(() => {
+  const stopTimer = useCallback(async () => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
-    // If paused, end the pause first
     let finalPausePeriods = [...timerState.pausePeriods];
     let finalPausedTime = timerState.totalPausedTime;
     
@@ -295,16 +377,56 @@ export function useTimeTracker() {
     const totalDuration = Math.floor((endTime.getTime() - timerState.startTime.getTime()) / 1000);
     const activeDuration = totalDuration - finalPausedTime;
 
-    const newEntry: TimeEntry = {
-      id: generateId('entry'),
-      categoryId: timerState.categoryId!,
-      subcategoryId: timerState.subcategoryId!,
-      startTime: timerState.startTime,
-      endTime,
-      duration: activeDuration, // Only active time counts
-      isRunning: false,
-      pausePeriods: finalPausePeriods,
-    };
+    let newEntry: TimeEntry;
+
+    if (isAuthenticated()) {
+      try {
+        const record = await pb.collection('time_entries').create({
+          category_id: timerState.categoryId,
+          subcategory_id: timerState.subcategoryId,
+          start_time: timerState.startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          duration: activeDuration,
+          is_running: false,
+          is_pause: false,
+          pause_periods: finalPausePeriods,
+        });
+        
+        newEntry = {
+          id: record.id,
+          categoryId: timerState.categoryId!,
+          subcategoryId: timerState.subcategoryId!,
+          startTime: timerState.startTime,
+          endTime,
+          duration: activeDuration,
+          isRunning: false,
+          pausePeriods: finalPausePeriods,
+        };
+      } catch (error) {
+        console.error('Error creating time entry in PocketBase:', error);
+        newEntry = {
+          id: generateId('entry'),
+          categoryId: timerState.categoryId!,
+          subcategoryId: timerState.subcategoryId!,
+          startTime: timerState.startTime,
+          endTime,
+          duration: activeDuration,
+          isRunning: false,
+          pausePeriods: finalPausePeriods,
+        };
+      }
+    } else {
+      newEntry = {
+        id: generateId('entry'),
+        categoryId: timerState.categoryId!,
+        subcategoryId: timerState.subcategoryId!,
+        startTime: timerState.startTime,
+        endTime,
+        duration: activeDuration,
+        isRunning: false,
+        pausePeriods: finalPausePeriods,
+      };
+    }
 
     const updatedEntries = [...timeEntries, newEntry];
     setTimeEntries(updatedEntries);
@@ -316,7 +438,6 @@ export function useTimeTracker() {
     return newEntry;
   }, [timerState, timeEntries]);
 
-  // Pomodoro phase switch
   const switchPomodoroPhase = useCallback(() => {
     if (!timerState || !timerState.pomodoroMode) return;
 
@@ -342,8 +463,8 @@ export function useTimeTracker() {
     saveTimerState(updatedState);
   }, [timerState]);
 
-  // Manual time entry
-  const addManualEntry = useCallback((
+  // Manual time entry with PocketBase sync
+  const addManualEntry = useCallback(async (
     categoryId: string,
     subcategoryId: string,
     startTime: Date,
@@ -353,17 +474,59 @@ export function useTimeTracker() {
   ) => {
     const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-    const newEntry: TimeEntry = {
-      id: generateId('entry'),
-      categoryId,
-      subcategoryId,
-      startTime,
-      endTime,
-      duration,
-      description,
-      isRunning: false,
-      isPause: isPause || false,
-    };
+    let newEntry: TimeEntry;
+
+    if (isAuthenticated()) {
+      try {
+        const record = await pb.collection('time_entries').create({
+          category_id: categoryId,
+          subcategory_id: subcategoryId,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          duration,
+          description,
+          is_running: false,
+          is_pause: isPause || false,
+        });
+        
+        newEntry = {
+          id: record.id,
+          categoryId,
+          subcategoryId,
+          startTime,
+          endTime,
+          duration,
+          description,
+          isRunning: false,
+          isPause: isPause || false,
+        };
+      } catch (error) {
+        console.error('Error creating manual entry in PocketBase:', error);
+        newEntry = {
+          id: generateId('entry'),
+          categoryId,
+          subcategoryId,
+          startTime,
+          endTime,
+          duration,
+          description,
+          isRunning: false,
+          isPause: isPause || false,
+        };
+      }
+    } else {
+      newEntry = {
+        id: generateId('entry'),
+        categoryId,
+        subcategoryId,
+        startTime,
+        endTime,
+        duration,
+        description,
+        isRunning: false,
+        isPause: isPause || false,
+      };
+    }
 
     const updatedEntries = [...timeEntries, newEntry];
     setTimeEntries(updatedEntries);
@@ -372,13 +535,37 @@ export function useTimeTracker() {
     return newEntry;
   }, [timeEntries]);
 
-  const deleteTimeEntry = useCallback((id: string) => {
+  const deleteTimeEntry = useCallback(async (id: string) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('time_entries').delete(id);
+      } catch (error) {
+        console.error('Error deleting time entry in PocketBase:', error);
+      }
+    }
+
     const updated = timeEntries.filter(e => e.id !== id);
     setTimeEntries(updated);
     saveTimeEntries(updated);
   }, [timeEntries]);
 
-  const updateTimeEntry = useCallback((id: string, updates: Partial<TimeEntry>) => {
+  const updateTimeEntry = useCallback(async (id: string, updates: Partial<TimeEntry>) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('time_entries').update(id, {
+          category_id: updates.categoryId,
+          subcategory_id: updates.subcategoryId,
+          start_time: updates.startTime?.toISOString(),
+          end_time: updates.endTime?.toISOString(),
+          duration: updates.duration,
+          description: updates.description,
+          is_pause: updates.isPause,
+        });
+      } catch (error) {
+        console.error('Error updating time entry in PocketBase:', error);
+      }
+    }
+
     const updated = timeEntries.map(e => 
       e.id === id ? { ...e, ...updates } : e
     );
@@ -386,23 +573,69 @@ export function useTimeTracker() {
     saveTimeEntries(updated);
   }, [timeEntries]);
 
-  // Goals operations
-  const addGoal = useCallback((categoryId: string, type: 'daily' | 'weekly', targetMinutes: number, subcategoryId?: string) => {
+  // Goals operations with PocketBase sync
+  const addGoal = useCallback(async (categoryId: string, type: 'daily' | 'weekly', targetMinutes: number, subcategoryId?: string) => {
     // Remove existing goal for same category, subcategory and type
+    const existingGoal = goals.find(g => 
+      g.categoryId === categoryId && 
+      g.type === type && 
+      g.subcategoryId === subcategoryId
+    );
+
+    if (existingGoal && isAuthenticated()) {
+      try {
+        await pb.collection('goals').delete(existingGoal.id);
+      } catch (error) {
+        console.error('Error deleting existing goal in PocketBase:', error);
+      }
+    }
+
     const filteredGoals = goals.filter(g => !(
       g.categoryId === categoryId && 
       g.type === type && 
       g.subcategoryId === subcategoryId
     ));
-    
-    const newGoal: Goal = {
-      id: generateId('goal'),
-      categoryId,
-      subcategoryId,
-      type,
-      targetMinutes,
-      createdAt: new Date(),
-    };
+
+    let newGoal: Goal;
+
+    if (isAuthenticated()) {
+      try {
+        const record = await pb.collection('goals').create({
+          category_id: categoryId,
+          subcategory_id: subcategoryId || null,
+          type,
+          target_minutes: targetMinutes,
+        });
+        
+        newGoal = {
+          id: record.id,
+          categoryId,
+          subcategoryId,
+          type,
+          targetMinutes,
+          createdAt: new Date(record.created),
+        };
+      } catch (error) {
+        console.error('Error creating goal in PocketBase:', error);
+        newGoal = {
+          id: generateId('goal'),
+          categoryId,
+          subcategoryId,
+          type,
+          targetMinutes,
+          createdAt: new Date(),
+        };
+      }
+    } else {
+      newGoal = {
+        id: generateId('goal'),
+        categoryId,
+        subcategoryId,
+        type,
+        targetMinutes,
+        createdAt: new Date(),
+      };
+    }
     
     const updated = [...filteredGoals, newGoal];
     setGoals(updated);
@@ -410,13 +643,34 @@ export function useTimeTracker() {
     return newGoal;
   }, [goals]);
 
-  const deleteGoal = useCallback((id: string) => {
+  const deleteGoal = useCallback(async (id: string) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('goals').delete(id);
+      } catch (error) {
+        console.error('Error deleting goal in PocketBase:', error);
+      }
+    }
+
     const updated = goals.filter(g => g.id !== id);
     setGoals(updated);
     saveGoals(updated);
   }, [goals]);
 
-  const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
+  const updateGoal = useCallback(async (id: string, updates: Partial<Goal>) => {
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('goals').update(id, {
+          category_id: updates.categoryId,
+          subcategory_id: updates.subcategoryId,
+          type: updates.type,
+          target_minutes: updates.targetMinutes,
+        });
+      } catch (error) {
+        console.error('Error updating goal in PocketBase:', error);
+      }
+    }
+
     const updated = goals.map(g => 
       g.id === id ? { ...g, ...updates } : g
     );
@@ -441,13 +695,11 @@ export function useTimeTracker() {
     return goals.filter(g => g.categoryId === categoryId);
   }, [goals]);
 
-  // Get entries excluding pause entries for statistics
   const getEntriesForStats = useCallback(() => {
     return timeEntries.filter(e => !e.isPause);
   }, [timeEntries]);
 
   return {
-    // Data
     categories,
     subcategories,
     timeEntries,
@@ -455,17 +707,14 @@ export function useTimeTracker() {
     goals,
     isLoaded,
 
-    // Category operations
     addCategory,
     updateCategory,
     deleteCategory,
 
-    // Subcategory operations
     addSubcategory,
     updateSubcategory,
     deleteSubcategory,
 
-    // Timer operations
     startTimer,
     stopTimer,
     pauseTimer,
@@ -474,18 +723,15 @@ export function useTimeTracker() {
     switchPomodoroPhase,
     updatePomodoroElapsed,
 
-    // Time entry operations
     addManualEntry,
     deleteTimeEntry,
     updateTimeEntry,
 
-    // Goals operations
     addGoal,
     deleteGoal,
     updateGoal,
     getGoalsForCategory,
 
-    // Helpers
     getSubcategoriesForCategory,
     getCategoryById,
     getSubcategoryById,
