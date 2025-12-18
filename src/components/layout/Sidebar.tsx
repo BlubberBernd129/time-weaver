@@ -1,7 +1,9 @@
-import { Clock, LayoutDashboard, FolderTree, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, LayoutDashboard, FolderTree, Calendar, BarChart3, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/timetracker';
 import { cn } from '@/lib/utils';
+import { logout } from '@/lib/pocketbase';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -16,6 +18,11 @@ const navItems: { id: ViewMode; label: string; icon: React.ElementType }[] = [
 ];
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {
+  const handleLogout = () => {
+    logout();
+    toast.success('Abgemeldet');
+  };
+
   return (
     <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex-col">
       {/* Logo */}
@@ -53,7 +60,16 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Abmelden
+        </Button>
         <p className="text-xs text-muted-foreground text-center">
           v1.0.0 • Self-Hosted
         </p>

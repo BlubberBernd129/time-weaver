@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, FolderTree, Calendar, BarChart3, Menu } from 'lucide-react';
+import { Clock, LayoutDashboard, FolderTree, Calendar, BarChart3, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/timetracker';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useState } from 'react';
+import { logout } from '@/lib/pocketbase';
+import { toast } from 'sonner';
 
 interface MobileNavProps {
   currentView: ViewMode;
@@ -31,6 +33,12 @@ export function MobileNav({ currentView, onViewChange }: MobileNavProps) {
     setOpen(false);
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success('Abgemeldet');
+    setOpen(false);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 z-50 lg:hidden">
       <div className="flex items-center gap-3">
@@ -48,7 +56,7 @@ export function MobileNav({ currentView, onViewChange }: MobileNavProps) {
             <Menu className="w-5 h-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-64 bg-sidebar border-sidebar-border">
+        <SheetContent side="right" className="w-64 bg-sidebar border-sidebar-border flex flex-col">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -76,6 +84,17 @@ export function MobileNav({ currentView, onViewChange }: MobileNavProps) {
               );
             })}
           </nav>
+          <div className="pt-4 border-t border-sidebar-border">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Abmelden
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     </header>
