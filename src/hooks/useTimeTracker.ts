@@ -23,69 +23,89 @@ export function useTimeTracker() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load data from PocketBase or localStorage
+  // Function to load data from PocketBase
+  const loadFromPocketBase = useCallback(async () => {
+    if (!isAuthenticated()) {
+      console.log('Not authenticated, skipping PocketBase load');
+      return false;
+    }
+
+    try {
+      console.log('Loading data from PocketBase...');
+      
+      // Load categories from PocketBase
+      const pbCategories = await pb.collection('categories').getFullList();
+      console.log('Loaded categories:', pbCategories);
+      const mappedCategories: Category[] = pbCategories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        color: c.color,
+        icon: c.icon,
+        createdAt: new Date(c.created),
+      }));
+      setCategories(mappedCategories);
+
+      // Load subcategories from PocketBase
+      const pbSubcategories = await pb.collection('subcategories').getFullList();
+      console.log('Loaded subcategories:', pbSubcategories);
+      const mappedSubcategories: Subcategory[] = pbSubcategories.map((s: any) => ({
+        id: s.id,
+        categoryId: s.category_id,
+        name: s.name,
+        createdAt: new Date(s.created),
+      }));
+      setSubcategories(mappedSubcategories);
+
+      // Load time entries from PocketBase
+      const pbEntries = await pb.collection('time_entries').getFullList();
+      console.log('Loaded time entries:', pbEntries);
+      const mappedEntries: TimeEntry[] = pbEntries.map((e: any) => ({
+        id: e.id,
+        categoryId: e.category_id,
+        subcategoryId: e.subcategory_id,
+        startTime: new Date(e.start_time),
+        endTime: e.end_time ? new Date(e.end_time) : undefined,
+        duration: e.duration,
+        description: e.description,
+        isRunning: e.is_running,
+        isPause: e.is_pause,
+        pausePeriods: e.pause_periods || [],
+      }));
+      setTimeEntries(mappedEntries);
+
+      // Load goals from PocketBase
+      const pbGoals = await pb.collection('goals').getFullList();
+      console.log('Loaded goals:', pbGoals);
+      const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
+        id: g.id,
+        categoryId: g.category_id,
+        subcategoryId: g.subcategory_id,
+        type: g.type,
+        targetMinutes: g.target_minutes,
+        createdAt: new Date(g.created),
+      }));
+      setGoals(mappedGoals);
+
+      return true;
+    } catch (error) {
+      console.error('Error loading from PocketBase:', error);
+      return false;
+    }
+  }, []);
+
+  // Load data on mount and when auth changes
   useEffect(() => {
     const loadData = async () => {
+      // Timer state always from local
+      setTimerState(getTimerState());
+
       if (isAuthenticated()) {
-        try {
-          // Load categories from PocketBase
-          const pbCategories = await pb.collection('categories').getFullList();
-          const mappedCategories: Category[] = pbCategories.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            color: c.color,
-            icon: c.icon,
-            createdAt: new Date(c.created),
-          }));
-          setCategories(mappedCategories);
-
-          // Load subcategories from PocketBase
-          const pbSubcategories = await pb.collection('subcategories').getFullList();
-          const mappedSubcategories: Subcategory[] = pbSubcategories.map((s: any) => ({
-            id: s.id,
-            categoryId: s.category_id,
-            name: s.name,
-            createdAt: new Date(s.created),
-          }));
-          setSubcategories(mappedSubcategories);
-
-          // Load time entries from PocketBase
-          const pbEntries = await pb.collection('time_entries').getFullList();
-          const mappedEntries: TimeEntry[] = pbEntries.map((e: any) => ({
-            id: e.id,
-            categoryId: e.category_id,
-            subcategoryId: e.subcategory_id,
-            startTime: new Date(e.start_time),
-            endTime: e.end_time ? new Date(e.end_time) : undefined,
-            duration: e.duration,
-            description: e.description,
-            isRunning: e.is_running,
-            isPause: e.is_pause,
-            pausePeriods: e.pause_periods || [],
-          }));
-          setTimeEntries(mappedEntries);
-
-          // Load goals from PocketBase
-          const pbGoals = await pb.collection('goals').getFullList();
-          const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
-            id: g.id,
-            categoryId: g.category_id,
-            subcategoryId: g.subcategory_id,
-            type: g.type,
-            targetMinutes: g.target_minutes,
-            createdAt: new Date(g.created),
-          }));
-          setGoals(mappedGoals);
-
-          // Timer state stays local (ephemeral)
-          setTimerState(getTimerState());
-        } catch (error) {
-          console.error('Error loading from PocketBase:', error);
+        const success = await loadFromPocketBase();
+        if (!success) {
           // Fallback to localStorage
           setCategories(getCategories());
           setSubcategories(getSubcategories());
           setTimeEntries(getTimeEntries());
-          setTimerState(getTimerState());
           setGoals(getGoals());
         }
       } else {
@@ -93,14 +113,25 @@ export function useTimeTracker() {
         setCategories(getCategories());
         setSubcategories(getSubcategories());
         setTimeEntries(getTimeEntries());
-        setTimerState(getTimerState());
         setGoals(getGoals());
       }
       setIsLoaded(true);
     };
 
     loadData();
-  }, []);
+
+    // Listen for auth changes to reload data
+    const unsubscribe = pb.authStore.onChange(async (token) => {
+      if (token) {
+        console.log('Auth changed, reloading data...');
+        await loadFromPocketBase();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [loadFromPocketBase]);
 
   // Category operations
   const addCategory = useCallback((name: string, color: string) => {
