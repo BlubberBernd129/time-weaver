@@ -41,9 +41,9 @@ export function DayTimeline({
     return () => clearInterval(interval);
   }, []);
 
-  // Filter entries for today
+  // Filter entries for today - exclude running entries (shown separately)
   const todayEntries = timeEntries.filter(entry =>
-    isSameDay(new Date(entry.startTime), today)
+    isSameDay(new Date(entry.startTime), today) && !entry.isRunning
   );
 
   // Calculate position and height for an entry
