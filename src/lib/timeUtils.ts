@@ -65,7 +65,9 @@ export function getEntriesForDay(entries: TimeEntry[], date: Date): TimeEntry[] 
 
 export function getEntriesForWeek(entries: TimeEntry[], date: Date): TimeEntry[] {
   const start = startOfWeek(date, { weekStartsOn: 1 });
-  const end = endOfWeek(date, { weekStartsOn: 1 });
+  // Set end to the very end of the last day (23:59:59.999)
+  const end = new Date(endOfWeek(date, { weekStartsOn: 1 }));
+  end.setHours(23, 59, 59, 999);
   
   return entries.filter(entry => {
     const entryDate = new Date(entry.startTime);

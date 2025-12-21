@@ -80,7 +80,17 @@ export function GoalsManager({
       return true;
     });
     
-    const totalSeconds = filteredEntries.reduce((acc, e) => acc + e.duration, 0);
+    // Calculate total time, including live duration for running entries
+    const now = new Date();
+    const totalSeconds = filteredEntries.reduce((acc, e) => {
+      if (e.isRunning && e.startTime) {
+        // For running entries, calculate live duration
+        const elapsed = Math.floor((now.getTime() - new Date(e.startTime).getTime()) / 1000);
+        return acc + Math.max(elapsed, 0);
+      }
+      return acc + e.duration;
+    }, 0);
+    
     const currentMinutes = totalSeconds / 60;
     const percentage = Math.min((currentMinutes / goal.targetMinutes) * 100, 100);
     
