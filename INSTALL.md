@@ -73,11 +73,13 @@ Erstelle folgende Collections in deinem PocketBase Admin-Panel:
 | subcategory_id | Text | Optional |
 | start_time | Text | Required |
 | end_time | Text | Optional |
-| duration | Number | Required |
+| duration | Number | Default: 0 |
 | description | Text | Optional |
 | is_running | Boolean | Default: false |
 | is_pause | Boolean | Default: false |
 | pause_periods | JSON | Optional |
+
+**Wichtig für Realtime-Sync**: Laufende Timer werden als Einträge mit `is_running: true` und `end_time: null` gespeichert. Die App synchronisiert diese automatisch zwischen Geräten via PocketBase Realtime.
 
 #### 4. `goals`
 | Feld | Typ | Optionen |
@@ -192,10 +194,18 @@ npm run build
 1. Im **Dashboard** Kategorie auswählen
 2. Unterkategorie auswählen
 3. **"Timer starten"** klicken
+4. Ein Eintrag mit `is_running: true` wird sofort in PocketBase erstellt
 
 ### Timer stoppen
 - **"Timer stoppen"** klicken
-- Der Zeiteintrag wird automatisch in PocketBase gespeichert
+- `end_time` wird gesetzt und `is_running` auf `false`
+- Die Dauer wird berechnet (Endzeit - Startzeit - Pausen)
+
+### Multi-Gerät Sync
+- **Laufende Timer werden automatisch synchronisiert**
+- Starte Timer auf Gerät A → erscheint auf Gerät B
+- Pausieren/Fortsetzen wird ebenfalls synchronisiert
+- Stoppen auf jedem Gerät möglich
 
 ### Manueller Eintrag
 1. **"Manuell eintragen"** Button
@@ -205,7 +215,8 @@ npm run build
 
 ### Pause-Funktion
 - Während ein Timer läuft: **"Pause"** klicken
-- Pausierte Zeit wird separat erfasst und von Statistiken ausgeschlossen
+- Pausenzeiten werden als `pause_periods` JSON gespeichert
+- Pausierte Zeit wird von der Gesamtzeit abgezogen
 
 ---
 
