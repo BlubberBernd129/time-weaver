@@ -15,6 +15,97 @@ import {
 } from '@/lib/storage';
 import { pb, isAuthenticated } from '@/lib/pocketbase';
 
+type StoredPausePeriod = { startTime: string; endTime: string | null };
+
+function parsePBDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+}
+
+function parsePBPausePeriods(raw: unknown): PausePeriod[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p: any) => {
+      const startRaw = p?.startTime ?? p?.start_time;
+      const endRaw = p?.endTime ?? p?.end_time;
+
+      if (!startRaw) return null;
+
+      return {
+        startTime: parsePBDate(startRaw),
+        endTime: endRaw ? parsePBDate(endRaw) : null,
+      } satisfies PausePeriod;
+    })
+    .filter(Boolean) as PausePeriod[];
+}
+
+function serializePausePeriods(periods: PausePeriod[]): StoredPausePeriod[] {
+  return periods.map((p) => ({
+    startTime: p.startTime.toISOString(),
+    endTime: p.endTime ? p.endTime.toISOString() : null,
+  }));
+}
+
+function calcPausedSeconds(periods: PausePeriod[]): number {
+  return periods.reduce((acc, p) => {
+    if (!p.endTime) return acc;
+    const seconds = Math.floor((p.endTime.getTime() - p.startTime.getTime()) / 1000);
+    return acc + Math.max(0, seconds);
+  }, 0);
+}
+
+function getActivePauseStart(periods: PausePeriod[]): Date | null {
+  for (let i = periods.length - 1; i >= 0; i--) {
+    if (!periods[i].endTime) return periods[i].startTime;
+  }
+  return null;
+}
+
+function mapPBEntryToTimeEntry(record: any): TimeEntry {
+  const pausePeriods = parsePBPausePeriods(record?.pause_periods);
+
+  return {
+    id: record.id,
+    categoryId: record.category_id,
+    subcategoryId: record.subcategory_id,
+    startTime: parsePBDate(record.start_time),
+    endTime: record.end_time ? parsePBDate(record.end_time) : null,
+    duration: record.duration ?? 0,
+    description: record.description ?? undefined,
+    isRunning: !!record.is_running,
+    isPause: !!record.is_pause,
+    pausePeriods,
+  };
+}
+
+function buildTimerStateFromRunningEntry(entry: TimeEntry): TimerState {
+  const periods = entry.pausePeriods ?? [];
+  const activePauseStart = getActivePauseStart(periods);
+
+  return {
+    isRunning: true,
+    isPaused: !!activePauseStart,
+    startTime: entry.startTime,
+    categoryId: entry.categoryId,
+    subcategoryId: entry.subcategoryId,
+    elapsed: 0,
+    pauseStartTime: activePauseStart,
+    totalPausedTime: calcPausedSeconds(periods),
+    pausePeriods: periods,
+    runningEntryId: entry.id,
+    // Pomodoro (not synced between devices yet)
+    pomodoroMode: false,
+    pomodoroPhase: 'work',
+    pomodoroWorkDuration: 1500,
+    pomodoroBreakDuration: 300,
+    pomodoroElapsed: 0,
+  };
+}
+
 export function useTimeTracker() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -33,7 +124,7 @@ export function useTimeTracker() {
 
       try {
         console.log('Loading data from PocketBase...');
-        
+
         const pbCategories = await pb.collection('categories').getFullList();
         const mappedCategories: Category[] = pbCategories.map((c: any) => ({
           id: c.id,
@@ -54,19 +145,19 @@ export function useTimeTracker() {
         setSubcategories(mappedSubcategories);
 
         const pbEntries = await pb.collection('time_entries').getFullList();
-        const mappedEntries: TimeEntry[] = pbEntries.map((e: any) => ({
-          id: e.id,
-          categoryId: e.category_id,
-          subcategoryId: e.subcategory_id,
-          startTime: new Date(e.start_time),
-          endTime: e.end_time ? new Date(e.end_time) : undefined,
-          duration: e.duration,
-          description: e.description,
-          isRunning: e.is_running,
-          isPause: e.is_pause,
-          pausePeriods: e.pause_periods || [],
-        }));
+        const mappedEntries: TimeEntry[] = pbEntries.map(mapPBEntryToTimeEntry);
         setTimeEntries(mappedEntries);
+
+        // If there is a running entry in the backend, use it as source of truth.
+        const running = mappedEntries
+          .filter((e) => e.isRunning && !e.endTime)
+          .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())[0];
+
+        if (running) {
+          const nextTimerState = buildTimerStateFromRunningEntry(running);
+          setTimerState(nextTimerState);
+          saveTimerState(nextTimerState);
+        }
 
         const pbGoals = await pb.collection('goals').getFullList();
         const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
@@ -116,6 +207,110 @@ export function useTimeTracker() {
     });
 
     return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Realtime sync for running timers and entries across devices
+  useEffect(() => {
+    let unsub: null | (() => void) = null;
+    let isActive = true;
+
+    const upsertEntry = (entry: TimeEntry) => {
+      setTimeEntries((prev) => {
+        const next = [...prev.filter((e) => e.id !== entry.id), entry];
+        saveTimeEntries(next);
+        return next;
+      });
+
+      if (entry.isRunning && !entry.endTime) {
+        const nextTimerState = buildTimerStateFromRunningEntry(entry);
+        setTimerState((prev) => {
+          if (
+            prev &&
+            prev.isRunning &&
+            prev.runningEntryId === entry.id &&
+            prev.isPaused === nextTimerState.isPaused &&
+            prev.startTime?.getTime() === nextTimerState.startTime?.getTime() &&
+            prev.totalPausedTime === nextTimerState.totalPausedTime
+          ) {
+            return prev;
+          }
+          saveTimerState(nextTimerState);
+          return nextTimerState;
+        });
+      } else {
+        setTimerState((prev) => {
+          if (prev?.runningEntryId === entry.id) {
+            saveTimerState(null);
+            return null;
+          }
+          return prev;
+        });
+      }
+    };
+
+    const removeEntry = (id: string) => {
+      setTimeEntries((prev) => {
+        const next = prev.filter((e) => e.id !== id);
+        saveTimeEntries(next);
+        return next;
+      });
+
+      setTimerState((prev) => {
+        if (prev?.runningEntryId === id) {
+          saveTimerState(null);
+          return null;
+        }
+        return prev;
+      });
+    };
+
+    const subscribe = async () => {
+      if (!isAuthenticated() || unsub) return;
+
+      try {
+        unsub = await pb.collection('time_entries').subscribe('*', (event: any) => {
+          if (!isActive) return;
+
+          const action = event?.action;
+          const record = event?.record;
+          if (!record?.id) return;
+
+          if (action === 'delete') {
+            removeEntry(record.id);
+            return;
+          }
+
+          upsertEntry(mapPBEntryToTimeEntry(record));
+        });
+      } catch (error) {
+        console.error('Error subscribing to time_entries realtime:', error);
+        unsub = null;
+      }
+    };
+
+    const unsubscribe = () => {
+      pb.collection('time_entries').unsubscribe('*').catch(() => {});
+      if (unsub) {
+        try {
+          unsub();
+        } catch {
+          // ignore
+        }
+        unsub = null;
+      }
+    };
+
+    const removeAuthListener = pb.authStore.onChange((token) => {
+      if (!isActive) return;
+      if (token) subscribe();
+      else unsubscribe();
+    }, true);
+
+    return () => {
+      isActive = false;
+      removeAuthListener();
       unsubscribe();
     };
   }, []);
@@ -290,26 +485,70 @@ export function useTimeTracker() {
     saveGoals(updatedGoals);
   }, [subcategories, timeEntries, goals]);
 
-  // Timer operations (local only - ephemeral)
+  // Timer operations (synced across devices via a running time_entries record)
   const startTimer = useCallback((categoryId: string, subcategoryId: string, pomodoroMode: boolean = false) => {
+    const startTime = new Date();
+
     const newState: TimerState = {
       isRunning: true,
       isPaused: false,
-      startTime: new Date(),
+      startTime,
       categoryId,
       subcategoryId,
       elapsed: 0,
       pauseStartTime: null,
       totalPausedTime: 0,
       pausePeriods: [],
+      runningEntryId: null,
       pomodoroMode,
       pomodoroPhase: 'work',
       pomodoroWorkDuration: 1500,
       pomodoroBreakDuration: 300,
       pomodoroElapsed: 0,
     };
+
     setTimerState(newState);
     saveTimerState(newState);
+
+    if (!isAuthenticated()) return;
+
+    (async () => {
+      try {
+        const record = await pb.collection('time_entries').create({
+          category_id: categoryId,
+          subcategory_id: subcategoryId,
+          start_time: startTime.toISOString(),
+          end_time: null,
+          duration: 0,
+          is_running: true,
+          is_pause: false,
+          pause_periods: [],
+        });
+
+        const runningEntry = mapPBEntryToTimeEntry(record);
+
+        setTimeEntries((prev) => {
+          const next = [...prev.filter((e) => e.id !== runningEntry.id), runningEntry];
+          saveTimeEntries(next);
+          return next;
+        });
+
+        setTimerState((prev) => {
+          if (!prev?.isRunning) return prev;
+          if (prev.startTime?.getTime() !== startTime.getTime()) return prev;
+
+          const next: TimerState = {
+            ...prev,
+            runningEntryId: record.id,
+          };
+
+          saveTimerState(next);
+          return next;
+        });
+      } catch (error) {
+        console.error('Error creating running time entry in PocketBase:', error);
+      }
+    })();
   }, []);
 
   const updateTimerStartTime = useCallback((newStartTime: Date) => {
@@ -321,65 +560,136 @@ export function useTimeTracker() {
     };
     setTimerState(updatedState);
     saveTimerState(updatedState);
+
+    if (isAuthenticated() && timerState.runningEntryId) {
+      pb.collection('time_entries')
+        .update(timerState.runningEntryId, { start_time: newStartTime.toISOString() })
+        .catch((error) => console.error('Error updating running entry start_time in PocketBase:', error));
+    }
   }, [timerState]);
 
   const pauseTimer = useCallback(() => {
     if (!timerState || !timerState.isRunning || timerState.isPaused) return;
 
+    const pauseStart = new Date();
+
     const updatedState: TimerState = {
       ...timerState,
       isPaused: true,
-      pauseStartTime: new Date(),
+      pauseStartTime: pauseStart,
+      pausePeriods: [...timerState.pausePeriods, { startTime: pauseStart, endTime: null }],
     };
+
     setTimerState(updatedState);
     saveTimerState(updatedState);
+
+    if (isAuthenticated() && timerState.runningEntryId) {
+      pb.collection('time_entries')
+        .update(timerState.runningEntryId, { pause_periods: serializePausePeriods(updatedState.pausePeriods) })
+        .catch((error) => console.error('Error updating running entry pause_periods in PocketBase:', error));
+    }
   }, [timerState]);
 
   const resumeTimer = useCallback(() => {
-    if (!timerState || !timerState.isPaused || !timerState.pauseStartTime) return;
+    if (!timerState || !timerState.isPaused) return;
 
     const pauseEnd = new Date();
-    const pauseDuration = Math.floor((pauseEnd.getTime() - timerState.pauseStartTime.getTime()) / 1000);
-    
-    const newPausePeriod: PausePeriod = {
-      startTime: timerState.pauseStartTime,
-      endTime: pauseEnd,
-    };
+
+    // Close the last open pause period
+    let openIndex = -1;
+    for (let i = timerState.pausePeriods.length - 1; i >= 0; i--) {
+      if (!timerState.pausePeriods[i].endTime) {
+        openIndex = i;
+        break;
+      }
+    }
+
+    if (openIndex === -1) return;
+
+    const openPeriod = timerState.pausePeriods[openIndex];
+    const pauseDuration = Math.floor((pauseEnd.getTime() - openPeriod.startTime.getTime()) / 1000);
+
+    const updatedPeriods = timerState.pausePeriods.map((p, idx) =>
+      idx === openIndex ? { ...p, endTime: pauseEnd } : p
+    );
 
     const updatedState: TimerState = {
       ...timerState,
       isPaused: false,
       pauseStartTime: null,
-      totalPausedTime: timerState.totalPausedTime + pauseDuration,
-      pausePeriods: [...timerState.pausePeriods, newPausePeriod],
+      totalPausedTime: timerState.totalPausedTime + Math.max(0, pauseDuration),
+      pausePeriods: updatedPeriods,
     };
+
     setTimerState(updatedState);
     saveTimerState(updatedState);
+
+    if (isAuthenticated() && timerState.runningEntryId) {
+      pb.collection('time_entries')
+        .update(timerState.runningEntryId, { pause_periods: serializePausePeriods(updatedState.pausePeriods) })
+        .catch((error) => console.error('Error updating running entry pause_periods in PocketBase:', error));
+    }
   }, [timerState]);
 
   const stopTimer = useCallback(async () => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
+    const endTime = new Date();
+
     let finalPausePeriods = [...timerState.pausePeriods];
     let finalPausedTime = timerState.totalPausedTime;
-    
-    if (timerState.isPaused && timerState.pauseStartTime) {
-      const pauseEnd = new Date();
-      const pauseDuration = Math.floor((pauseEnd.getTime() - timerState.pauseStartTime.getTime()) / 1000);
-      finalPausePeriods.push({
-        startTime: timerState.pauseStartTime,
-        endTime: pauseEnd,
-      });
-      finalPausedTime += pauseDuration;
+
+    // If paused, close the last open pause period at stop time
+    if (timerState.isPaused) {
+      const openIndex = finalPausePeriods.findIndex((p) => !p.endTime);
+      if (openIndex !== -1) {
+        const open = finalPausePeriods[openIndex];
+        const pauseDuration = Math.floor((endTime.getTime() - open.startTime.getTime()) / 1000);
+        finalPausedTime += Math.max(0, pauseDuration);
+        finalPausePeriods[openIndex] = { ...open, endTime };
+      }
     }
 
-    const endTime = new Date();
     const totalDuration = Math.floor((endTime.getTime() - timerState.startTime.getTime()) / 1000);
-    const activeDuration = totalDuration - finalPausedTime;
+    const activeDuration = Math.max(0, totalDuration - finalPausedTime);
 
     let newEntry: TimeEntry;
 
-    if (isAuthenticated()) {
+    if (isAuthenticated() && timerState.runningEntryId) {
+      try {
+        await pb.collection('time_entries').update(timerState.runningEntryId, {
+          end_time: endTime.toISOString(),
+          duration: activeDuration,
+          is_running: false,
+          is_pause: false,
+          pause_periods: serializePausePeriods(finalPausePeriods),
+        });
+
+        newEntry = {
+          id: timerState.runningEntryId,
+          categoryId: timerState.categoryId!,
+          subcategoryId: timerState.subcategoryId!,
+          startTime: timerState.startTime,
+          endTime,
+          duration: activeDuration,
+          isRunning: false,
+          pausePeriods: finalPausePeriods,
+        };
+      } catch (error) {
+        console.error('Error updating running time entry in PocketBase:', error);
+        newEntry = {
+          id: generateId('entry'),
+          categoryId: timerState.categoryId!,
+          subcategoryId: timerState.subcategoryId!,
+          startTime: timerState.startTime,
+          endTime,
+          duration: activeDuration,
+          isRunning: false,
+          pausePeriods: finalPausePeriods,
+        };
+      }
+    } else if (isAuthenticated()) {
+      // Fallback (shouldn't happen often): create a finished entry.
       try {
         const record = await pb.collection('time_entries').create({
           category_id: timerState.categoryId,
@@ -389,9 +699,9 @@ export function useTimeTracker() {
           duration: activeDuration,
           is_running: false,
           is_pause: false,
-          pause_periods: finalPausePeriods,
+          pause_periods: serializePausePeriods(finalPausePeriods),
         });
-        
+
         newEntry = {
           id: record.id,
           categoryId: timerState.categoryId!,
@@ -428,15 +738,18 @@ export function useTimeTracker() {
       };
     }
 
-    const updatedEntries = [...timeEntries, newEntry];
-    setTimeEntries(updatedEntries);
-    saveTimeEntries(updatedEntries);
+    setTimeEntries((prev) => {
+      const exists = prev.some((e) => e.id === newEntry.id);
+      const next = exists ? prev.map((e) => (e.id === newEntry.id ? newEntry : e)) : [...prev, newEntry];
+      saveTimeEntries(next);
+      return next;
+    });
 
     setTimerState(null);
     saveTimerState(null);
 
     return newEntry;
-  }, [timerState, timeEntries]);
+  }, [timerState]);
 
   const switchPomodoroPhase = useCallback(() => {
     if (!timerState || !timerState.pomodoroMode) return;

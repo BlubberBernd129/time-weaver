@@ -99,6 +99,7 @@ export function getTimerState(): TimerState | null {
     startTime: state.startTime ? parseDate(state.startTime) : null,
     pauseStartTime: state.pauseStartTime ? parseDate(state.pauseStartTime) : null,
     pausePeriods: parsePausePeriods(state.pausePeriods),
+    runningEntryId: state.runningEntryId ?? null,
     // Ensure new fields have defaults
     isPaused: state.isPaused ?? false,
     totalPausedTime: state.totalPausedTime ?? 0,

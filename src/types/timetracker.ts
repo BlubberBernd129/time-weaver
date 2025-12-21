@@ -41,6 +41,8 @@ export interface TimerState {
   pauseStartTime: Date | null; // when pause started
   totalPausedTime: number; // total paused time in seconds
   pausePeriods: PausePeriod[];
+  /** The PocketBase record id of the currently running `time_entries` record (when available). */
+  runningEntryId?: string | null;
   // Pomodoro
   pomodoroMode: boolean;
   pomodoroPhase: 'work' | 'break';
