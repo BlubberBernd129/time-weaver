@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { format, isSameDay, startOfDay, differenceInMinutes } from 'date-fns';
+import { useState, useEffect, useRef } from 'react';
+import { format, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Clock } from 'lucide-react';
 import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
@@ -16,6 +16,7 @@ const HOUR_HEIGHT = 80; // pixels per hour
 const START_HOUR = 6; // Start at 6:00
 const END_HOUR = 23; // End at 23:00
 const TOTAL_HOURS = END_HOUR - START_HOUR;
+const TOP_PADDING = HOUR_HEIGHT / 4; // 15 Minuten = 1/4 Stunde Abstand oben
 
 export function DayTimeline({
   timeEntries,
@@ -25,11 +26,17 @@ export function DayTimeline({
 }: DayTimelineProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const today = new Date();
+  const lastTimeRef = useRef<string>('');
 
-  // Update current time every second for real-time display
+  // Update current time every second - nur String aktualisieren wenn sich Zeit ändert
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      const timeStr = format(now, 'HH:mm:ss');
+      if (timeStr !== lastTimeRef.current) {
+        lastTimeRef.current = timeStr;
+        setCurrentTime(now);
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -50,7 +57,7 @@ export function DayTimeline({
     const topOffset = Math.max(0, startMinutes - START_HOUR * 60);
     const duration = Math.max(5, endMinutes - startMinutes); // Minimum 5 minutes height
 
-    const top = (topOffset / 60) * HOUR_HEIGHT;
+    const top = (topOffset / 60) * HOUR_HEIGHT + TOP_PADDING;
     const height = (duration / 60) * HOUR_HEIGHT;
 
     return { top, height: Math.max(height, 20) }; // Minimum 20px height
@@ -60,11 +67,14 @@ export function DayTimeline({
   const currentTimePosition = () => {
     const minutes = currentTime.getHours() * 60 + currentTime.getMinutes();
     const offset = minutes - START_HOUR * 60;
-    return (offset / 60) * HOUR_HEIGHT;
+    return (offset / 60) * HOUR_HEIGHT + TOP_PADDING;
   };
 
   // Generate hour labels
   const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
+
+  // Format date only once per day
+  const formattedDate = format(today, 'EEEE, dd. MMMM', { locale: de });
 
   return (
     <div className="glass-card p-4 h-full flex flex-col">
@@ -72,21 +82,21 @@ export function DayTimeline({
         <Clock className="w-5 h-5 text-primary" />
         <h2 className="font-semibold">Heute</h2>
         <span className="text-sm text-muted-foreground ml-auto">
-          {format(today, 'EEEE, dd. MMMM', { locale: de })}
+          {formattedDate}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto relative pr-1 scrollbar-thin">
         <div
           className="relative"
-          style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
+          style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT + TOP_PADDING * 2}px` }}
         >
           {/* Hour lines and labels */}
           {hours.map((hour) => (
             <div
               key={hour}
               className="absolute w-full flex items-start"
-              style={{ top: `${(hour - START_HOUR) * HOUR_HEIGHT}px` }}
+              style={{ top: `${(hour - START_HOUR) * HOUR_HEIGHT + TOP_PADDING}px` }}
             >
               <span className="text-xs text-muted-foreground w-12 flex-shrink-0 -mt-2">
                 {hour.toString().padStart(2, '0')}:00
@@ -104,12 +114,12 @@ export function DayTimeline({
               <div className="w-2 h-2 rounded-full bg-primary" />
               <div className="flex-1 h-0.5 bg-primary/70" />
               <span className="text-xs font-mono text-primary ml-2">
-                {format(currentTime, 'HH:mm:ss')}
+                {lastTimeRef.current || format(currentTime, 'HH:mm:ss')}
               </span>
             </div>
           )}
 
-          {/* Time entries */}
+          {/* Time entries - ohne animate-pulse */}
           {todayEntries.map((entry) => {
             const category = getCategoryById(entry.categoryId);
             const subcategory = getSubcategoryById(entry.subcategoryId);
@@ -118,10 +128,7 @@ export function DayTimeline({
             return (
               <div
                 key={entry.id}
-                className={cn(
-                  "absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden transition-all duration-300",
-                  entry.isRunning && "animate-pulse"
-                )}
+                className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden transition-colors duration-300"
                 style={{
                   top: `${top}px`,
                   height: `${height}px`,
@@ -139,10 +146,10 @@ export function DayTimeline({
             );
           })}
 
-          {/* Active timer block */}
+          {/* Active timer block - subtilere Animation */}
           {timerState?.isRunning && timerState.startTime && isSameDay(new Date(timerState.startTime), today) && (
             <div
-              className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden border-2 border-dashed animate-pulse"
+              className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden border-2 border-dashed"
               style={{
                 top: `${getEntryStyle(new Date(timerState.startTime), null).top}px`,
                 height: `${getEntryStyle(new Date(timerState.startTime), null).height}px`,
