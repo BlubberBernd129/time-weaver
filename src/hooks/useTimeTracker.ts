@@ -163,8 +163,8 @@ export function useTimeTracker() {
         const mappedGoals: Goal[] = pbGoals.map((g: any) => ({
           id: g.id,
           categoryId: g.category_id,
-          subcategoryId: g.subcategory_id,
-          type: g.type,
+          subcategoryId: g.subcategory_id ?? undefined,
+          type: (g.goal_type ?? g.type) as Goal['type'],
           targetMinutes: g.target_minutes,
           createdAt: new Date(g.created),
         }));
@@ -916,7 +916,7 @@ export function useTimeTracker() {
         const record = await pb.collection('goals').create({
           category_id: categoryId,
           subcategory_id: subcategoryId || null,
-          type,
+          goal_type: type,
           target_minutes: targetMinutes,
         });
         
@@ -973,12 +973,13 @@ export function useTimeTracker() {
   const updateGoal = useCallback(async (id: string, updates: Partial<Goal>) => {
     if (isAuthenticated()) {
       try {
-        await pb.collection('goals').update(id, {
-          category_id: updates.categoryId,
-          subcategory_id: updates.subcategoryId,
-          type: updates.type,
-          target_minutes: updates.targetMinutes,
-        });
+        const payload: Record<string, unknown> = {};
+        if (typeof updates.categoryId !== 'undefined') payload.category_id = updates.categoryId;
+        if (typeof updates.subcategoryId !== 'undefined') payload.subcategory_id = updates.subcategoryId ?? null;
+        if (typeof updates.type !== 'undefined') payload.goal_type = updates.type;
+        if (typeof updates.targetMinutes !== 'undefined') payload.target_minutes = updates.targetMinutes;
+
+        await pb.collection('goals').update(id, payload);
       } catch (error) {
         console.error('Error updating goal in PocketBase:', error);
       }
