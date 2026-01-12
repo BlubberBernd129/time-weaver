@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Zap } from 'lucide-react';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -50,18 +50,6 @@ export function PasswordGate({ children }: PasswordGateProps) {
     }
   };
 
-  const handleQuickLogin = async () => {
-    setIsSubmitting(true);
-    try {
-      await login('nickbisch129@gmail.com', 'se0912ce');
-      toast.success('Schnell-Login erfolgreich');
-    } catch (error: any) {
-      console.error('Quick login error:', error);
-      toast.error(error?.message || 'Schnell-Login fehlgeschlagen');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -130,18 +118,6 @@ export function PasswordGate({ children }: PasswordGateProps) {
             </Button>
           </form>
 
-          <div className="w-full border-t border-border pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleQuickLogin}
-              disabled={isSubmitting}
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              Schnell-Login (Dev)
-            </Button>
-          </div>
         </div>
       </div>
     </div>
