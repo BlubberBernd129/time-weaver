@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, FolderTree, Calendar, BarChart3, LogOut } from 'lucide-react';
+import { Clock, LayoutDashboard, List, FolderTree, Calendar, BarChart3, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/timetracker';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ interface SidebarProps {
 
 const navItems: { id: ViewMode; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'entries', label: 'Alle Einträge', icon: List },
   { id: 'categories', label: 'Kategorien', icon: FolderTree },
   { id: 'calendar', label: 'Kalender', icon: Calendar },
   { id: 'statistics', label: 'Statistik', icon: BarChart3 },

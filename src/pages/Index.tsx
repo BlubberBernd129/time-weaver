@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav, MobileBottomNav } from '@/components/layout/MobileNav';
 import { Dashboard } from '@/components/dashboard/Dashboard';
+import { AllEntriesView } from '@/components/entries/AllEntriesView';
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { StatisticsView } from '@/components/statistics/StatisticsView';
 import { PasswordGate } from '@/components/auth/PasswordGate';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
+import { useMidnightCheck } from '@/hooks/useMidnightCheck';
 import { ViewMode } from '@/types/timetracker';
 import { Loader2 } from 'lucide-react';
 
@@ -42,6 +44,15 @@ const Index = () => {
     getSubcategoryById,
   } = useTimeTracker();
 
+  // Midnight check and 12-hour auto-stop
+  useMidnightCheck({
+    timerState,
+    timeEntries,
+    onStopTimer: stopTimer,
+    onAddManualEntry: addManualEntry,
+    onUpdateEntry: updateTimeEntry,
+  });
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -76,6 +87,18 @@ const Index = () => {
             onAddGoal={addGoal}
             onDeleteGoal={deleteGoal}
             getSubcategoriesForCategory={getSubcategoriesForCategory}
+            getCategoryById={getCategoryById}
+            getSubcategoryById={getSubcategoryById}
+          />
+        );
+      case 'entries':
+        return (
+          <AllEntriesView
+            timeEntries={timeEntries}
+            categories={categories}
+            subcategories={subcategories}
+            onDelete={deleteTimeEntry}
+            onUpdate={updateTimeEntry}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
           />
