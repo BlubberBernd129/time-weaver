@@ -1,6 +1,10 @@
 # TimeTracker Docker Compose Configuration
 # Self-Hosted Zeit-Tracking Anwendung
 # 
+# Features:
+# - Nachträgliches Bearbeiten von Pausen
+# - Automatische Pausen für "Gillig + Keller" (9:30-9:45, 15:00-15:15)
+#
 # Verwendung:
 # 1. Kopiere .env.example zu .env und passe die Werte an
 # 2. docker compose up -d --build

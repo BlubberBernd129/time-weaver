@@ -1,6 +1,7 @@
 # TimeTracker Dockerfile
 # Multi-stage build für optimale Image-Größe
 # Updated: Pause-Editor Feature mit Backend-Sync
+# Updated: Automatische Pausen für "Gillig + Keller" (9:30-9:45, 15:00-15:15)
 
 # Build Stage
 FROM node:20-alpine AS builder
