@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Pencil } from 'lucide-react';
+import { Pencil, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,15 +11,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TimeEntry } from '@/types/timetracker';
+import { TimeEntry, PausePeriod } from '@/types/timetracker';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PausePeriodsEditor } from './PausePeriodsEditor';
+import { Separator } from '@/components/ui/separator';
 
 interface EditEntryDialogProps {
   entry: TimeEntry;
@@ -32,6 +33,7 @@ export function EditEntryDialog({ entry, onUpdate }: EditEntryDialogProps) {
   const [startTime, setStartTime] = useState(format(new Date(entry.startTime), 'HH:mm'));
   const [endTime, setEndTime] = useState(entry.endTime ? format(new Date(entry.endTime), 'HH:mm') : '');
   const [description, setDescription] = useState(entry.description || '');
+  const [pausePeriods, setPausePeriods] = useState<PausePeriod[]>(entry.pausePeriods || []);
 
   const handleSubmit = () => {
     const [startHours, startMinutes] = startTime.split(':').map(Number);
@@ -48,13 +50,21 @@ export function EditEntryDialog({ entry, onUpdate }: EditEntryDialogProps) {
       newEndTime.setDate(newEndTime.getDate() + 1);
     }
 
-    const duration = Math.floor((newEndTime.getTime() - newStartTime.getTime()) / 1000);
+    // Calculate total paused time
+    const totalPausedSeconds = pausePeriods.reduce((acc, p) => {
+      if (!p.endTime) return acc;
+      return acc + Math.floor((new Date(p.endTime).getTime() - new Date(p.startTime).getTime()) / 1000);
+    }, 0);
+
+    const totalDuration = Math.floor((newEndTime.getTime() - newStartTime.getTime()) / 1000);
+    const activeDuration = Math.max(0, totalDuration - totalPausedSeconds);
 
     onUpdate(entry.id, {
       startTime: newStartTime,
       endTime: newEndTime,
-      duration,
+      duration: activeDuration,
       description: description || undefined,
+      pausePeriods: pausePeriods,
     });
 
     setOpen(false);
@@ -66,6 +76,7 @@ export function EditEntryDialog({ entry, onUpdate }: EditEntryDialogProps) {
       setStartTime(format(new Date(entry.startTime), 'HH:mm'));
       setEndTime(entry.endTime ? format(new Date(entry.endTime), 'HH:mm') : '');
       setDescription(entry.description || '');
+      setPausePeriods(entry.pausePeriods || []);
     }
     setOpen(isOpen);
   };
@@ -150,7 +161,18 @@ export function EditEntryDialog({ entry, onUpdate }: EditEntryDialogProps) {
             />
           </div>
 
-          <Button onClick={handleSubmit} className="w-full">
+          <Separator className="my-4" />
+
+          {/* Pause Periods Editor */}
+          <PausePeriodsEditor
+            pausePeriods={pausePeriods}
+            entryDate={date}
+            entryStartTime={startTime}
+            entryEndTime={endTime}
+            onChange={setPausePeriods}
+          />
+
+          <Button onClick={handleSubmit} className="w-full mt-4">
             Speichern
           </Button>
         </div>
