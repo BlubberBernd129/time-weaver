@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Search, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { Trash2, Search, AlertTriangle, Calendar, Clock, Pause } from 'lucide-react';
 import { EditEntryDialog } from '@/components/timer/EditEntryDialog';
 import {
   Select,
@@ -241,6 +241,12 @@ export function AllEntriesView({
                                   )}
                                   {entry.isPause && (
                                     <Badge variant="secondary">Pause</Badge>
+                                  )}
+                                  {entry.pausePeriods && entry.pausePeriods.length > 0 && (
+                                    <Badge variant="outline" className="gap-1 text-xs">
+                                      <Pause className="w-3 h-3" />
+                                      {entry.pausePeriods.length} Pause{entry.pausePeriods.length > 1 ? 'n' : ''}
+                                    </Badge>
                                   )}
                                 </div>
                                 <div className="text-sm text-muted-foreground">

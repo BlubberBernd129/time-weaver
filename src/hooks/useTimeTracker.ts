@@ -863,17 +863,22 @@ export function useTimeTracker() {
   }, [timeEntries]);
 
   const updateTimeEntry = useCallback(async (id: string, updates: Partial<TimeEntry>) => {
-    if (isAuthenticated()) {
+    // Prepare PocketBase update payload
+    const pbUpdates: Record<string, unknown> = {};
+    if (updates.categoryId !== undefined) pbUpdates.category_id = updates.categoryId;
+    if (updates.subcategoryId !== undefined) pbUpdates.subcategory_id = updates.subcategoryId;
+    if (updates.startTime !== undefined) pbUpdates.start_time = updates.startTime.toISOString();
+    if (updates.endTime !== undefined) pbUpdates.end_time = updates.endTime.toISOString();
+    if (updates.duration !== undefined) pbUpdates.duration = updates.duration;
+    if (updates.description !== undefined) pbUpdates.description = updates.description;
+    if (updates.isPause !== undefined) pbUpdates.is_pause = updates.isPause;
+    if (updates.pausePeriods !== undefined) {
+      pbUpdates.pause_periods = serializePausePeriods(updates.pausePeriods);
+    }
+
+    if (isAuthenticated() && Object.keys(pbUpdates).length > 0) {
       try {
-        await pb.collection('time_entries').update(id, {
-          category_id: updates.categoryId,
-          subcategory_id: updates.subcategoryId,
-          start_time: updates.startTime?.toISOString(),
-          end_time: updates.endTime?.toISOString(),
-          duration: updates.duration,
-          description: updates.description,
-          is_pause: updates.isPause,
-        });
+        await pb.collection('time_entries').update(id, pbUpdates);
       } catch (error) {
         console.error('Error updating time entry in PocketBase:', error);
       }
