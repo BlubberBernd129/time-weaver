@@ -106,6 +106,64 @@ function buildTimerStateFromRunningEntry(entry: TimeEntry): TimerState {
   };
 }
 
+// Configuration for automatic pause periods per category name
+const AUTO_PAUSE_CONFIG: Record<string, { start: string; end: string }[]> = {
+  'Gillig + Keller': [
+    { start: '09:30', end: '09:45' },
+    { start: '15:00', end: '15:15' },
+  ],
+};
+
+/**
+ * Generate automatic pause periods for a given category and time range.
+ * Only includes pauses that fall within the entry's start/end time.
+ */
+function generateAutoPauses(
+  categoryName: string,
+  entryStart: Date,
+  entryEnd: Date,
+  existingPauses: PausePeriod[]
+): PausePeriod[] {
+  const config = AUTO_PAUSE_CONFIG[categoryName];
+  if (!config) return existingPauses;
+
+  const autoPauses: PausePeriod[] = [];
+  const entryDate = new Date(entryStart);
+
+  for (const pauseConfig of config) {
+    const [startHour, startMin] = pauseConfig.start.split(':').map(Number);
+    const [endHour, endMin] = pauseConfig.end.split(':').map(Number);
+
+    const pauseStart = new Date(entryDate);
+    pauseStart.setHours(startHour, startMin, 0, 0);
+
+    const pauseEnd = new Date(entryDate);
+    pauseEnd.setHours(endHour, endMin, 0, 0);
+
+    // Only add if pause falls within entry time range
+    if (pauseStart >= entryStart && pauseEnd <= entryEnd) {
+      // Check if this pause already exists (avoid duplicates)
+      const alreadyExists = existingPauses.some(
+        (p) =>
+          Math.abs(new Date(p.startTime).getTime() - pauseStart.getTime()) < 60000 &&
+          p.endTime &&
+          Math.abs(new Date(p.endTime).getTime() - pauseEnd.getTime()) < 60000
+      );
+
+      if (!alreadyExists) {
+        autoPauses.push({ startTime: pauseStart, endTime: pauseEnd });
+      }
+    }
+  }
+
+  // Merge and sort all pauses
+  const allPauses = [...existingPauses, ...autoPauses].sort(
+    (a, b) => a.startTime.getTime() - b.startTime.getTime()
+  );
+
+  return allPauses;
+}
+
 export function useTimeTracker() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -650,6 +708,19 @@ export function useTimeTracker() {
       }
     }
 
+    // Auto-add pauses for specific categories (e.g., "Gillig + Keller")
+    const category = categories.find((c) => c.id === timerState.categoryId);
+    if (category) {
+      finalPausePeriods = generateAutoPauses(
+        category.name,
+        timerState.startTime,
+        endTime,
+        finalPausePeriods
+      );
+      // Recalculate paused time with auto-pauses
+      finalPausedTime = calcPausedSeconds(finalPausePeriods);
+    }
+
     const totalDuration = Math.floor((endTime.getTime() - timerState.startTime.getTime()) / 1000);
     const activeDuration = Math.max(0, totalDuration - finalPausedTime);
 
@@ -749,7 +820,7 @@ export function useTimeTracker() {
     saveTimerState(null);
 
     return newEntry;
-  }, [timerState]);
+  }, [timerState, categories]);
 
   const switchPomodoroPhase = useCallback(() => {
     if (!timerState || !timerState.pomodoroMode) return;
@@ -785,7 +856,17 @@ export function useTimeTracker() {
     description?: string,
     isPause?: boolean
   ) => {
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    // Auto-add pauses for specific categories (e.g., "Gillig + Keller")
+    const category = categories.find((c) => c.id === categoryId);
+    let pausePeriods: PausePeriod[] = [];
+    
+    if (category && !isPause) {
+      pausePeriods = generateAutoPauses(category.name, startTime, endTime, []);
+    }
+
+    const totalPausedSeconds = calcPausedSeconds(pausePeriods);
+    const totalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const duration = Math.max(0, totalDuration - totalPausedSeconds);
 
     let newEntry: TimeEntry;
 
@@ -800,6 +881,7 @@ export function useTimeTracker() {
           description,
           is_running: false,
           is_pause: isPause || false,
+          pause_periods: serializePausePeriods(pausePeriods),
         });
         
         newEntry = {
@@ -812,6 +894,7 @@ export function useTimeTracker() {
           description,
           isRunning: false,
           isPause: isPause || false,
+          pausePeriods,
         };
       } catch (error) {
         console.error('Error creating manual entry in PocketBase:', error);
@@ -825,6 +908,7 @@ export function useTimeTracker() {
           description,
           isRunning: false,
           isPause: isPause || false,
+          pausePeriods,
         };
       }
     } else {
@@ -838,6 +922,7 @@ export function useTimeTracker() {
         description,
         isRunning: false,
         isPause: isPause || false,
+        pausePeriods,
       };
     }
 
@@ -846,7 +931,7 @@ export function useTimeTracker() {
     saveTimeEntries(updatedEntries);
 
     return newEntry;
-  }, [timeEntries]);
+  }, [timeEntries, categories]);
 
   const deleteTimeEntry = useCallback(async (id: string) => {
     if (isAuthenticated()) {
