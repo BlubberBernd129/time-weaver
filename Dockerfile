@@ -1,7 +1,6 @@
 # TimeTracker Dockerfile
 # Multi-stage build für optimale Image-Größe
-# Updated: Pause-Editor Feature mit Backend-Sync
-# Updated: Automatische Pausen für "Gillig + Keller" (9:30-9:45, 15:00-15:15)
+# Updated: Flexible API URL (VITE_API_URL) mit Fallback auf öffentliche URL
 
 # Build Stage
 FROM node:20-alpine AS builder
@@ -19,13 +18,14 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 
 # Build-Argumente für Umgebungsvariablen
-ARG VITE_POCKETBASE_URL="https://api.nick-cloud.org"
+# VITE_API_URL: Für lokalen Server http://127.0.0.1:8090, extern https://api.nick-cloud.org
+ARG VITE_API_URL="https://api.nick-cloud.org"
 ARG VITE_SUPABASE_URL=""
 ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
 ARG VITE_SUPABASE_PROJECT_ID=""
 
 # Setze Umgebungsvariablen für Build
-ENV VITE_POCKETBASE_URL=$VITE_POCKETBASE_URL
+ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID

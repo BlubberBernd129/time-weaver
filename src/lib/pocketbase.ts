@@ -1,6 +1,7 @@
 import PocketBase from 'pocketbase';
 
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || 'https://api.nick-cloud.org';
+// Flexible API URL: Nutzt VITE_API_URL aus .env, Fallback auf öffentliche URL
+const POCKETBASE_URL = import.meta.env.VITE_API_URL || 'https://api.nick-cloud.org';
 
 export const pb = new PocketBase(POCKETBASE_URL);
 

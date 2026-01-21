@@ -4,11 +4,13 @@
 # Features:
 # - Nachträgliches Bearbeiten von Pausen
 # - Automatische Pausen für "Gillig + Keller" (9:30-9:45, 15:00-15:15)
+# - Flexible API URL: Lokal (127.0.0.1:8090) oder extern (api.nick-cloud.org)
 #
 # Verwendung:
 # 1. Kopiere .env.example zu .env und passe die Werte an
-# 2. docker compose up -d --build
-# 3. Öffne http://localhost:3000 im Browser
+# 2. Für lokalen PocketBase: VITE_API_URL=http://127.0.0.1:8090
+# 3. docker compose up -d --build
+# 4. Öffne http://localhost:3000 im Browser
 #
 # Für Updates:
 # docker compose down && docker compose up -d --build
@@ -19,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL:-https://api.nick-cloud.org}
+        - VITE_API_URL=${VITE_API_URL:-https://api.nick-cloud.org}
         - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-}
         - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY:-}
         - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID:-}

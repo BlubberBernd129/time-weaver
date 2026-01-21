@@ -17,8 +17,11 @@ cd timetracker
 # 2. Konfigurationsdatei erstellen
 cp .env.example .env
 
-# 3. PocketBase URL konfigurieren
-# Bearbeite .env und setze VITE_POCKETBASE_URL=https://deine-pocketbase-url
+# 3. API URL konfigurieren
+# Für lokalen PocketBase (intern, ohne Cloudflare):
+#   VITE_API_URL=http://127.0.0.1:8090
+# Für externen Zugriff (Standard):
+#   VITE_API_URL=https://api.nick-cloud.org
 
 # 4. Container starten
 docker compose up -d --build
@@ -258,7 +261,17 @@ npm run build
 | Variable | Beschreibung | Standard |
 |----------|-------------|----------|
 | `PORT` | Port für die App | 3000 |
-| `VITE_POCKETBASE_URL` | PocketBase Server URL | https://api.nick-cloud.org |
+| `VITE_API_URL` | PocketBase API URL | https://api.nick-cloud.org |
+
+**Lokaler Server (ohne Cloudflare):**
+```bash
+VITE_API_URL=http://127.0.0.1:8090
+```
+
+**Externer Zugriff:**
+```bash
+VITE_API_URL=https://api.nick-cloud.org
+```
 
 ### Datenpeicherung
 
