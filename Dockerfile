@@ -1,6 +1,8 @@
 # TimeTracker Dockerfile
 # Multi-stage build für optimale Image-Größe
-# Updated: Flexible API URL (VITE_API_URL) mit Fallback auf öffentliche URL
+# Updated: Dynamische API-URL basierend auf Browser-Hostname
+# - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
+# - Remote (Cloudflare): https://api.nick-cloud.org
 
 # Build Stage
 FROM node:20-alpine AS builder
@@ -17,15 +19,12 @@ RUN npm ci --legacy-peer-deps
 # Kopiere Source-Code
 COPY . .
 
-# Build-Argumente für Umgebungsvariablen
-# VITE_API_URL: Für lokalen Server http://127.0.0.1:8090, extern https://api.nick-cloud.org
-ARG VITE_API_URL="https://api.nick-cloud.org"
+# Build-Argumente für Umgebungsvariablen (API-URL wird jetzt dynamisch im Browser ermittelt)
 ARG VITE_SUPABASE_URL=""
 ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
 ARG VITE_SUPABASE_PROJECT_ID=""
 
 # Setze Umgebungsvariablen für Build
-ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
