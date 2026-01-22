@@ -17,18 +17,24 @@ cd timetracker
 # 2. Konfigurationsdatei erstellen
 cp .env.example .env
 
-# 3. API URL konfigurieren
-# Für lokalen PocketBase (intern, ohne Cloudflare):
-#   VITE_API_URL=http://127.0.0.1:8090
-# Für externen Zugriff (Standard):
-#   VITE_API_URL=https://api.nick-cloud.org
-
-# 4. Container starten
+# 3. Container starten (API-URL wird automatisch erkannt!)
 docker compose up -d --build
 
-# 5. App öffnen
+# 4. App öffnen
 # Öffne http://localhost:3000 im Browser
 ```
+
+### Automatische API-Erkennung
+
+Die App erkennt automatisch, ob du lokal oder remote zugreifst:
+
+| Zugriff über | PocketBase URL |
+|--------------|----------------|
+| `192.168.178.43` | `http://192.168.178.43:8090` (lokal) |
+| `localhost` | `http://192.168.178.43:8090` (lokal) |
+| Andere (Cloudflare) | `https://api.nick-cloud.org` (remote) |
+
+**Keine manuelle Konfiguration nötig!**
 
 ### Container verwalten
 
@@ -256,22 +262,24 @@ npm run build
 
 ## 🔧 Konfiguration
 
+### Automatische API-Erkennung
+
+Die PocketBase API-URL wird **automatisch** basierend auf dem Browser-Hostname ermittelt:
+
+| Browser-Hostname | PocketBase URL | Beschreibung |
+|------------------|----------------|--------------|
+| `192.168.178.43` | `http://192.168.178.43:8090` | Lokaler Zugriff (zu Hause) |
+| `localhost` | `http://192.168.178.43:8090` | Lokaler Entwicklung |
+| `127.0.0.1` | `http://192.168.178.43:8090` | Lokaler Entwicklung |
+| Andere | `https://api.nick-cloud.org` | Remote via Cloudflare |
+
+**Keine Umgebungsvariablen für die API-URL nötig!**
+
 ### Umgebungsvariablen (.env)
 
 | Variable | Beschreibung | Standard |
 |----------|-------------|----------|
 | `PORT` | Port für die App | 3000 |
-| `VITE_API_URL` | PocketBase API URL | https://api.nick-cloud.org |
-
-**Lokaler Server (ohne Cloudflare):**
-```bash
-VITE_API_URL=http://127.0.0.1:8090
-```
-
-**Externer Zugriff:**
-```bash
-VITE_API_URL=https://api.nick-cloud.org
-```
 
 ### Datenpeicherung
 
