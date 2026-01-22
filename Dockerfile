@@ -2,6 +2,7 @@
 # Multi-stage build für optimale Image-Größe
 # Updated: Dynamische API-URL basierend auf Browser-Hostname
 # - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
+# - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
 # - Remote (Cloudflare): https://api.nick-cloud.org
 
 # Build Stage
