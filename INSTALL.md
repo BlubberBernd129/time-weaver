@@ -26,12 +26,13 @@ docker compose up -d --build
 
 ### Automatische API-Erkennung
 
-Die App erkennt automatisch, ob du lokal oder remote zugreifst:
+Die App erkennt automatisch, welche API-Route verwendet werden soll:
 
 | Zugriff über | PocketBase URL |
 |--------------|----------------|
 | `192.168.178.43` | `http://192.168.178.43:8090` (lokal) |
 | `localhost` | `http://192.168.178.43:8090` (lokal) |
+| `rtracker.nick-cloud.org` | `https://rapi.nick-cloud.org` (Strato-Relay) |
 | Andere (Cloudflare) | `https://api.nick-cloud.org` (remote) |
 
 **Keine manuelle Konfiguration nötig!**
@@ -269,8 +270,9 @@ Die PocketBase API-URL wird **automatisch** basierend auf dem Browser-Hostname e
 | Browser-Hostname | PocketBase URL | Beschreibung |
 |------------------|----------------|--------------|
 | `192.168.178.43` | `http://192.168.178.43:8090` | Lokaler Zugriff (zu Hause) |
-| `localhost` | `http://192.168.178.43:8090` | Lokaler Entwicklung |
-| `127.0.0.1` | `http://192.168.178.43:8090` | Lokaler Entwicklung |
+| `localhost` | `http://192.168.178.43:8090` | Lokale Entwicklung |
+| `127.0.0.1` | `http://192.168.178.43:8090` | Lokale Entwicklung |
+| `rtracker.nick-cloud.org` | `https://rapi.nick-cloud.org` | Strato-Relay (besseres Peering) |
 | Andere | `https://api.nick-cloud.org` | Remote via Cloudflare |
 
 **Keine Umgebungsvariablen für die API-URL nötig!**

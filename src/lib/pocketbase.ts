@@ -3,6 +3,7 @@ import PocketBase from 'pocketbase';
 /**
  * Ermittelt die PocketBase API-URL basierend auf dem Browser-Hostname.
  * - Lokaler Zugriff (192.168.178.43 oder localhost): http://192.168.178.43:8090
+ * - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
  * - Remote-Zugriff (Cloudflare/Internet): https://api.nick-cloud.org
  */
 function getPocketBaseUrl(): string {
@@ -15,9 +16,15 @@ function getPocketBaseUrl(): string {
       console.log('🏠 Lokaler Zugriff erkannt - nutze lokale PocketBase API');
       return 'http://192.168.178.43:8090';
     }
+    
+    // Strato-Relay - nutze Relay-API für besseres Peering
+    if (hostname === 'rtracker.nick-cloud.org') {
+      console.log('🔀 Strato-Relay erkannt - nutze Relay PocketBase API');
+      return 'https://rapi.nick-cloud.org';
+    }
   }
   
-  // Remote-Zugriff oder SSR - nutze öffentliche API
+  // Remote-Zugriff oder SSR - nutze öffentliche API (Cloudflare)
   console.log('🌐 Remote-Zugriff - nutze öffentliche PocketBase API');
   return 'https://api.nick-cloud.org';
 }
