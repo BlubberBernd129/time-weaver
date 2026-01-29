@@ -1,5 +1,14 @@
 # TimeTracker - Installationsanleitung
 
+## ⚠️ Sync-Fix v2.1 - Multi-Device Timer
+
+**Problem behoben:** Timer auf PC1 starten → auf PC2 stoppen → PC1 öffnen = Zeit wurde falsch erhöht
+
+**Lösung:** Bei authentifizierten Nutzern wird der Timer-Status **NUR aus der Datenbank** geladen. 
+localStorage wird ignoriert, um Konflikte zwischen Geräten zu vermeiden.
+
+---
+
 ## 🚀 Schnellstart mit Docker
 
 ### Voraussetzungen

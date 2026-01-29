@@ -1,5 +1,19 @@
 # TimeTracker Docker Compose Configuration
 # Self-Hosted Zeit-Tracking Anwendung
+#
+# ============================================================================
+# SYNC-FIX v2.1 - Multi-Device Timer Synchronisation
+# ============================================================================
+# PROBLEM (behoben):
+#   Timer auf PC1 starten → auf PC2 stoppen → PC1 öffnen = Zeit falsch erhöht
+#
+# URSACHE:
+#   localStorage speicherte Timer-Status lokal, wurde vor DB-Daten geladen
+#
+# LÖSUNG:
+#   Bei authentifizierten Nutzern wird localStorage für Timer IGNORIERT.
+#   Timer-Status kommt NUR aus der Datenbank (PocketBase).
+# ============================================================================
 # 
 # Features:
 # - Nachträgliches Bearbeiten von Pausen

@@ -1,6 +1,12 @@
 # TimeTracker Dockerfile
 # Multi-stage build für optimale Image-Größe
-# Updated: Dynamische API-URL basierend auf Browser-Hostname
+# 
+# SYNC-FIX (v2.1): Timer-Status wird NUR aus der Datenbank geladen!
+# - localStorage wird bei authentifizierten Nutzern ignoriert
+# - Verhindert Sync-Probleme zwischen verschiedenen Geräten/Browsern
+# - Datenbank ist die einzige Quelle der Wahrheit für Timer-Status
+#
+# API-Routing (dynamisch basierend auf Browser-Hostname):
 # - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
 # - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
 # - Remote (Cloudflare): https://api.nick-cloud.org
