@@ -708,6 +708,31 @@ export function useTimeTracker() {
     }
   }, [timerState]);
 
+  // Update pause periods on a running timer (for on-the-fly editing)
+  const updateTimerPauses = useCallback((pausePeriods: PausePeriod[]) => {
+    if (!timerState || !timerState.isRunning) return;
+
+    const totalPausedTime = calcPausedSeconds(pausePeriods);
+    const activePauseStart = getActivePauseStart(pausePeriods);
+
+    const updatedState: TimerState = {
+      ...timerState,
+      pausePeriods,
+      totalPausedTime,
+      isPaused: !!activePauseStart,
+      pauseStartTime: activePauseStart,
+    };
+
+    setTimerState(updatedState);
+    saveTimerState(updatedState);
+
+    if (isAuthenticated() && timerState.runningEntryId) {
+      pb.collection('time_entries')
+        .update(timerState.runningEntryId, { pause_periods: serializePausePeriods(pausePeriods) })
+        .catch((error) => console.error('Error updating running entry pause_periods in PocketBase:', error));
+    }
+  }, [timerState]);
+
   const stopTimer = useCallback(async () => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
@@ -1143,6 +1168,7 @@ export function useTimeTracker() {
     pauseTimer,
     resumeTimer,
     updateTimerStartTime,
+    updateTimerPauses,
     switchPomodoroPhase,
     updatePomodoroElapsed,
 

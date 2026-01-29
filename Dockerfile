@@ -1,10 +1,36 @@
 # TimeTracker Dockerfile
 # Multi-stage build für optimale Image-Größe
 # 
+# ============================================================================
+# UI OVERHAUL v3.0 - Statistik, Kalender, Dashboard, Ziele
+# ============================================================================
+#
+# STATISTIK:
+#   - Reine Wochenbetrachtung (Kalenderwochen)
+#   - Dynamische Anzeige "Stand Dienstag" für laufende Woche
+#   - Benchmark: Vergleich mit historischem 8-Wochen-Durchschnitt
+#   - Manueller KW-Vergleich (2 Wochen + Gesamtdurchschnitt)
+#   - Nur Hauptkategorien (Unterkategorien ausgeblendet)
+#   - Stacked Bar Charts + Area Charts
+#
+# KALENDER:
+#   - Visuelle Skalierung: Eintrags-Länge = Dauer
+#   - 16-Stunden-Raster (6:00-22:00)
+#   - 1 Stunde = 1/16 der Bildschirmhöhe
+#   - Vollflächige Kategorie-Farben
+#
+# DASHBOARD:
+#   - Live-Timeline mit Pausen-Segmenten (schraffiert)
+#   - On-the-fly Pause-Editing (klicken, ändern, löschen)
+#   - Glassmorphism-Design
+#
+# ZIELE:
+#   - Nur Wochenziele (tägliche Ziele entfernt)
+#   - Progress Circles/Rings für Fortschritt
+#
+# ============================================================================
 # SYNC-FIX (v2.1): Timer-Status wird NUR aus der Datenbank geladen!
-# - localStorage wird bei authentifizierten Nutzern ignoriert
-# - Verhindert Sync-Probleme zwischen verschiedenen Geräten/Browsern
-# - Datenbank ist die einzige Quelle der Wahrheit für Timer-Status
+# ============================================================================
 #
 # API-Routing (dynamisch basierend auf Browser-Hostname):
 # - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090

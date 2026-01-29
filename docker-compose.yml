@@ -2,26 +2,44 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
+# UI OVERHAUL v3.0 - Statistik, Kalender, Dashboard, Ziele
+# ============================================================================
+#
+# NEUE FEATURES:
+#
+# 📊 STATISTIK:
+#   - Reine Wochenbetrachtung (Kalenderwochen) - tägliche Vergleiche entfernt
+#   - Dynamische Anzeige "Stand Dienstag" für laufende Woche
+#   - Benchmark: Vergleich mit historischem 8-Wochen-Durchschnitt (gleicher Wochentag)
+#   - Manueller KW-Vergleich (2 Wochen wählen + Gesamtdurchschnitt)
+#   - Nur Hauptkategorien anzeigen (Unterkategorien ausgeblendet)
+#   - Stacked Bar Charts + Area Charts für Visualisierung
+#
+# 📅 KALENDER:
+#   - Visuelle Skalierung: Eintrags-Länge entspricht exakt der Dauer
+#   - 16-Stunden-Raster (6:00-22:00)
+#   - Formel: 1 Stunde = 1/16 der Bildschirmhöhe
+#   - Vollflächige Kategorie-Farben (nicht nur Rand)
+#
+# ⏱️ DASHBOARD:
+#   - Live-Timeline mit Pausen-Segmenten (schraffiert/semi-transparent)
+#   - On-the-fly Pause-Editing: Klicken → Länge ändern → Löschen
+#   - Glassmorphism-Design (backdrop-blur, transparente Karten)
+#
+# 🎯 ZIELE:
+#   - Nur Wochenziele (tägliche Ziele komplett entfernt)
+#   - Progress Circles/Rings für Fortschrittsanzeige
+#
+# ============================================================================
 # SYNC-FIX v2.1 - Multi-Device Timer Synchronisation
 # ============================================================================
-# PROBLEM (behoben):
-#   Timer auf PC1 starten → auf PC2 stoppen → PC1 öffnen = Zeit falsch erhöht
+# Timer-Status wird NUR aus der Datenbank geladen (localStorage ignoriert)
 #
-# URSACHE:
-#   localStorage speicherte Timer-Status lokal, wurde vor DB-Daten geladen
-#
-# LÖSUNG:
-#   Bei authentifizierten Nutzern wird localStorage für Timer IGNORIERT.
-#   Timer-Status kommt NUR aus der Datenbank (PocketBase).
 # ============================================================================
-# 
-# Features:
-# - Nachträgliches Bearbeiten von Pausen
-# - Automatische Pausen für "Gillig + Keller" (9:30-9:45, 15:00-15:15)
-# - Dynamische API-URL: Automatisch basierend auf Browser-Hostname
-#   - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
-#   - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
-#   - Remote (Cloudflare): https://api.nick-cloud.org
+# API-Routing (dynamisch basierend auf Browser-Hostname):
+# - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
+# - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
+# - Remote (Cloudflare): https://api.nick-cloud.org
 #
 # Verwendung:
 # 1. Kopiere .env.example zu .env und passe die Werte an
@@ -29,7 +47,6 @@
 # 3. Öffne http://localhost:3000 im Browser
 #
 # Die API-URL wird automatisch basierend auf dem Browser-Hostname gewählt!
-# Keine manuelle Konfiguration nötig.
 #
 # Für Updates:
 # docker compose down && docker compose up -d --build
@@ -56,7 +73,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=1.0.0"
+      - "com.timetracker.version=3.0.0"
 
 networks:
   default:
