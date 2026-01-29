@@ -206,15 +206,23 @@ export function useTimeTracker() {
         const mappedEntries: TimeEntry[] = pbEntries.map(mapPBEntryToTimeEntry);
         setTimeEntries(mappedEntries);
 
-        // If there is a running entry in the backend, use it as source of truth.
+        // Timer-Status NUR aus der Datenbank ableiten - NIEMALS localStorage!
+        // Dies ist der Kern der Fix: Datenbank ist die einzige Quelle der Wahrheit.
         const running = mappedEntries
           .filter((e) => e.isRunning && !e.endTime)
           .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())[0];
 
         if (running) {
+          console.log('⏱️ Laufender Timer in DB gefunden:', running.id);
           const nextTimerState = buildTimerStateFromRunningEntry(running);
           setTimerState(nextTimerState);
           saveTimerState(nextTimerState);
+        } else {
+          // WICHTIG: Wenn kein laufender Timer in der DB, dann Timer auf null setzen!
+          // Das verhindert, dass ein veralteter localStorage-Timer angezeigt wird.
+          console.log('✅ Kein laufender Timer in DB - Timer-Status zurücksetzen');
+          setTimerState(null);
+          saveTimerState(null);
         }
 
         const pbGoals = await pb.collection('goals').getFullList();
@@ -236,17 +244,28 @@ export function useTimeTracker() {
     };
 
     const loadData = async () => {
-      setTimerState(getTimerState());
-
       if (isAuthenticated()) {
+        // WICHTIG: Bei Authentifizierung NUR Datenbank-Daten verwenden!
+        // localStorage wird bewusst ignoriert, um Sync-Probleme zwischen Geräten zu vermeiden.
+        // Der Timer-Status wird ausschließlich aus der Datenbank geladen.
+        console.log('🔐 Authentifiziert - lade Daten NUR aus der Datenbank (localStorage ignoriert)');
+        
+        // localStorage-Timer explizit löschen, um veraltete Daten zu entfernen
+        saveTimerState(null);
+        
         const success = await loadFromPocketBase();
         if (!success) {
+          console.warn('⚠️ PocketBase-Laden fehlgeschlagen, Fallback auf localStorage');
+          setTimerState(getTimerState());
           setCategories(getCategories());
           setSubcategories(getSubcategories());
           setTimeEntries(getTimeEntries());
           setGoals(getGoals());
         }
       } else {
+        // Nicht authentifiziert - localStorage verwenden
+        console.log('📂 Nicht authentifiziert - lade Daten aus localStorage');
+        setTimerState(getTimerState());
         setCategories(getCategories());
         setSubcategories(getSubcategories());
         setTimeEntries(getTimeEntries());
