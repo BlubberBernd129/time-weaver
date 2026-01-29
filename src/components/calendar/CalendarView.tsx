@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react';
-import { addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, format } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, format, getHours, getMinutes } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +16,11 @@ import { formatTime, formatDuration, formatMonthYear, getWeekDays, formatWeekday
 import { cn } from '@/lib/utils';
 import { DraggableEntryCreator, DragHandle } from './DraggableEntryCreator';
 import { EntryDetailDialog } from './EntryDetailDialog';
+
+// 16-hour grid constants (6:00 - 22:00)
+const START_HOUR = 6;
+const END_HOUR = 22;
+const TOTAL_HOURS = END_HOUR - START_HOUR; // 16 hours
 
 interface CalendarViewProps {
   timeEntries: TimeEntry[];
@@ -149,7 +154,7 @@ export function CalendarView({
       {/* Calendar Grid */}
       <div className="flex-1 min-h-0">
         {viewMode === 'week' ? (
-          <WeekView 
+          <TimeScaledWeekView 
             days={weekDays}
             getEntriesForDay={getEntriesForDay}
             getCategoryById={getCategoryById}
@@ -197,7 +202,7 @@ export function CalendarView({
   );
 }
 
-interface WeekViewProps {
+interface TimeScaledWeekViewProps {
   days: Date[];
   getEntriesForDay: (date: Date) => TimeEntry[];
   getCategoryById: (id: string) => Category | undefined;
@@ -214,7 +219,7 @@ interface WeekViewProps {
   onEntryClick: (entry: TimeEntry) => void;
 }
 
-function WeekView({ 
+function TimeScaledWeekView({ 
   days, 
   getEntriesForDay, 
   getCategoryById, 
@@ -223,50 +228,112 @@ function WeekView({
   getSubcategoriesForCategory,
   onAddEntry,
   onEntryClick,
-}: WeekViewProps) {
+}: TimeScaledWeekViewProps) {
   const today = new Date();
 
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 lg:gap-3 h-full">
-      {days.map((day) => {
-        const entries = getEntriesForDay(day);
-        const isToday = isSameDay(day, today);
+  // Calculate position and height for entry (percentage of 16-hour grid)
+  const getEntryStyle = (entry: TimeEntry) => {
+    const start = new Date(entry.startTime);
+    const end = entry.endTime ? new Date(entry.endTime) : new Date();
+    
+    const startHour = getHours(start) + getMinutes(start) / 60;
+    const endHour = getHours(end) + getMinutes(end) / 60;
+    
+    // Clamp to grid bounds
+    const clampedStart = Math.max(START_HOUR, Math.min(END_HOUR, startHour));
+    const clampedEnd = Math.max(START_HOUR, Math.min(END_HOUR, endHour));
+    
+    const topPercent = ((clampedStart - START_HOUR) / TOTAL_HOURS) * 100;
+    const heightPercent = ((clampedEnd - clampedStart) / TOTAL_HOURS) * 100;
+    
+    return {
+      top: `${topPercent}%`,
+      height: `${Math.max(heightPercent, 2)}%`, // Minimum 2% height for visibility
+    };
+  };
 
-        return (
-          <DraggableEntryCreator
-            key={day.toISOString()}
-            date={day}
-            categories={categories}
-            getSubcategoriesForCategory={getSubcategoriesForCategory}
-            onAddEntry={onAddEntry}
-          >
-            <div
+  // Generate hour markers
+  const hourMarkers = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
+
+  return (
+    <div className="glass-card p-2 lg:p-4 h-full flex flex-col overflow-hidden">
+      {/* Day Headers */}
+      <div className="grid grid-cols-8 gap-1 lg:gap-2 mb-2 flex-shrink-0">
+        {/* Time column header */}
+        <div className="text-center text-xs text-muted-foreground py-2">Zeit</div>
+        {days.map((day) => {
+          const isToday = isSameDay(day, today);
+          return (
+            <div 
+              key={day.toISOString()} 
               className={cn(
-                "glass-card p-2 lg:p-3 h-full min-h-[200px] lg:min-h-[400px] flex flex-col",
-                isToday && "ring-2 ring-primary"
+                "text-center py-2 rounded-lg",
+                isToday && "bg-primary/20"
               )}
             >
-              <div className="text-center mb-2 lg:mb-3 pb-2 border-b border-border">
-                <div className="text-[10px] lg:text-xs text-muted-foreground uppercase">
-                  {formatWeekdayShort(day)}
-                </div>
-                <div className={cn(
-                  "text-base lg:text-lg font-semibold",
-                  isToday && "text-primary"
-                )}>
-                  {format(day, 'd')}
-                </div>
+              <div className="text-[10px] lg:text-xs text-muted-foreground uppercase">
+                {formatWeekdayShort(day)}
               </div>
+              <div className={cn(
+                "text-sm lg:text-lg font-semibold",
+                isToday && "text-primary"
+              )}>
+                {format(day, 'd')}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-              <div className="flex-1 space-y-1 lg:space-y-2 overflow-y-auto">
-                {entries.length === 0 ? (
-                  <p className="text-[10px] lg:text-xs text-muted-foreground text-center py-2 lg:py-4">
-                    Keine Einträge
-                  </p>
-                ) : (
-                  entries.map((entry) => {
+      {/* Time Grid */}
+      <div className="flex-1 overflow-y-auto relative scrollbar-thin">
+        <div className="grid grid-cols-8 gap-1 lg:gap-2 min-h-[600px] lg:min-h-[800px]">
+          {/* Time Column */}
+          <div className="relative">
+            {hourMarkers.map((hour, index) => (
+              <div
+                key={hour}
+                className="absolute left-0 right-0 text-[10px] lg:text-xs text-muted-foreground -translate-y-1/2"
+                style={{ top: `${(index / TOTAL_HOURS) * 100}%` }}
+              >
+                {hour.toString().padStart(2, '0')}:00
+              </div>
+            ))}
+          </div>
+
+          {/* Day Columns */}
+          {days.map((day) => {
+            const entries = getEntriesForDay(day);
+            const isToday = isSameDay(day, today);
+
+            return (
+              <DraggableEntryCreator
+                key={day.toISOString()}
+                date={day}
+                categories={categories}
+                getSubcategoriesForCategory={getSubcategoriesForCategory}
+                onAddEntry={onAddEntry}
+              >
+                <div
+                  className={cn(
+                    "relative h-full border-l border-border/30",
+                    isToday && "bg-primary/5"
+                  )}
+                >
+                  {/* Hour grid lines */}
+                  {hourMarkers.map((hour, index) => (
+                    <div
+                      key={hour}
+                      className="absolute left-0 right-0 border-t border-border/20"
+                      style={{ top: `${(index / TOTAL_HOURS) * 100}%` }}
+                    />
+                  ))}
+
+                  {/* Time entries - full category color */}
+                  {entries.map((entry) => {
                     const category = getCategoryById(entry.categoryId);
                     const subcategory = getSubcategoryById(entry.subcategoryId);
+                    const style = getEntryStyle(entry);
 
                     return (
                       <div
@@ -275,29 +342,28 @@ function WeekView({
                           e.stopPropagation();
                           onEntryClick(entry);
                         }}
-                        className="time-block p-1.5 lg:p-2 text-[10px] lg:text-xs cursor-pointer hover:brightness-110 transition-all"
-                        style={{ 
-                          backgroundColor: `${category?.color}15`,
-                          borderLeftColor: category?.color,
-                          borderLeftWidth: '3px',
+                        className="absolute left-1 right-1 rounded-md px-1 py-0.5 overflow-hidden cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                        style={{
+                          top: style.top,
+                          height: style.height,
+                          backgroundColor: category?.color || 'hsl(var(--muted))',
                         }}
                       >
-                        <div className="font-medium truncate">{subcategory?.name}</div>
-                        <div className="text-muted-foreground hidden sm:block">
-                          {formatTime(new Date(entry.startTime))} - {entry.endTime && formatTime(new Date(entry.endTime))}
+                        <div className="text-[10px] lg:text-xs font-medium text-white truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                          {subcategory?.name}
                         </div>
-                        <div className="font-mono mt-0.5 lg:mt-1">
+                        <div className="text-[8px] lg:text-[10px] text-white/80 truncate" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
                           {formatDuration(entry.duration)}
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </div>
-            </div>
-          </DraggableEntryCreator>
-        );
-      })}
+                  })}
+                </div>
+              </DraggableEntryCreator>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -389,14 +455,12 @@ function MonthView({
                             onEntryClick(entry);
                           }}
                           className="h-4 lg:h-5 rounded px-1 flex items-center gap-1 cursor-pointer hover:brightness-110 transition-all"
-                          style={{ backgroundColor: `${category?.color}30` }}
+                          style={{ backgroundColor: category?.color }}
                           title={`${subcategory?.name} - ${formatDuration(entry.duration)}`}
                         >
-                          <div
-                            className="w-1.5 lg:w-2 h-1.5 lg:h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: category?.color }}
-                          />
-                          <span className="text-[8px] lg:text-[9px] truncate">{subcategory?.name}</span>
+                          <span className="text-[8px] lg:text-[9px] text-white truncate" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
+                            {subcategory?.name}
+                          </span>
                         </div>
                       );
                     })}

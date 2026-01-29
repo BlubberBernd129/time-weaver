@@ -32,6 +32,7 @@ const Index = () => {
     pauseTimer,
     resumeTimer,
     updateTimerStartTime,
+    updateTimerPauses,
     switchPomodoroPhase,
     updatePomodoroElapsed,
     addManualEntry,
@@ -79,6 +80,7 @@ const Index = () => {
             onPauseTimer={pauseTimer}
             onResumeTimer={resumeTimer}
             onUpdateTimerStartTime={updateTimerStartTime}
+            onUpdateTimerPauses={updateTimerPauses}
             onSwitchPomodoroPhase={switchPomodoroPhase}
             onUpdatePomodoroElapsed={updatePomodoroElapsed}
             onAddManualEntry={addManualEntry}

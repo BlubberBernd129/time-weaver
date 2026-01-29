@@ -3,8 +3,8 @@ import { QuickStats } from '@/components/timer/QuickStats';
 import { ManualEntryDialog } from '@/components/timer/ManualEntryDialog';
 import { RecentEntries } from '@/components/timer/RecentEntries';
 import { DayTimeline } from './DayTimeline';
-import { GoalsManager } from '@/components/goals/GoalsManager';
-import { Category, Subcategory, TimeEntry, TimerState, Goal } from '@/types/timetracker';
+import { WeeklyGoalsRings } from '@/components/goals/WeeklyGoalsRings';
+import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
 import { LayoutDashboard } from 'lucide-react';
 
 interface DashboardProps {
@@ -20,6 +20,7 @@ interface DashboardProps {
   onUpdateTimerStartTime: (newStartTime: Date) => void;
   onSwitchPomodoroPhase: () => void;
   onUpdatePomodoroElapsed: (elapsed: number) => void;
+  onUpdateTimerPauses?: (pausePeriods: PausePeriod[]) => void;
   onAddManualEntry: (
     categoryId: string,
     subcategoryId: string,
@@ -50,6 +51,7 @@ export function Dashboard({
   onUpdateTimerStartTime,
   onSwitchPomodoroPhase,
   onUpdatePomodoroElapsed,
+  onUpdateTimerPauses,
   onAddManualEntry,
   onDeleteEntry,
   onUpdateEntry,
@@ -59,6 +61,9 @@ export function Dashboard({
   getCategoryById,
   getSubcategoryById,
 }: DashboardProps) {
+  // Filter to only weekly goals
+  const weeklyGoals = goals.filter(g => g.type === 'weekly');
+
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:h-[calc(100vh-4rem)]">
       {/* Left: Day Timeline - Hidden on mobile */}
@@ -68,6 +73,7 @@ export function Dashboard({
           timerState={timerState}
           getCategoryById={getCategoryById}
           getSubcategoryById={getSubcategoryById}
+          onUpdateTimerPauses={onUpdateTimerPauses}
         />
       </div>
 
@@ -110,11 +116,11 @@ export function Dashboard({
             getSubcategoriesForCategory={getSubcategoriesForCategory}
           />
 
-          {/* Goals */}
-          <GoalsManager
+          {/* Weekly Goals with Progress Rings */}
+          <WeeklyGoalsRings
             categories={categories}
             subcategories={subcategories}
-            goals={goals}
+            goals={weeklyGoals}
             timeEntries={timeEntries}
             onAddGoal={onAddGoal}
             onDeleteGoal={onDeleteGoal}

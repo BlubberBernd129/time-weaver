@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface GoalsManagerProps {
+interface WeeklyGoalsRingsProps {
   categories: Category[];
   subcategories: Subcategory[];
   goals: Goal[];
@@ -29,7 +29,7 @@ interface GoalsManagerProps {
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
 }
 
-export function GoalsManager({
+export function WeeklyGoalsRings({
   categories,
   subcategories,
   goals,
@@ -37,7 +37,7 @@ export function GoalsManager({
   onAddGoal,
   onDeleteGoal,
   getSubcategoriesForCategory,
-}: GoalsManagerProps) {
+}: WeeklyGoalsRingsProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [targetHours, setTargetHours] = useState('');
@@ -49,7 +49,6 @@ export function GoalsManager({
     if (!selectedCategory || !targetHours) return;
     
     const minutes = parseFloat(targetHours) * 60;
-    // Always create weekly goals now
     onAddGoal(selectedCategory, 'weekly', minutes);
     
     setDialogOpen(false);
@@ -58,14 +57,9 @@ export function GoalsManager({
   };
 
   const calculateProgress = (goal: Goal): { current: number; percentage: number } => {
-    // Always use weekly calculation
     const entries = getEntriesForWeek(activeEntries, today);
     
-    const filteredEntries = entries.filter(e => {
-      if (e.categoryId !== goal.categoryId) return false;
-      if (goal.subcategoryId && e.subcategoryId !== goal.subcategoryId) return false;
-      return true;
-    });
+    const filteredEntries = entries.filter(e => e.categoryId === goal.categoryId);
     
     const now = new Date();
     const totalSeconds = filteredEntries.reduce((acc, e) => {
@@ -82,7 +76,7 @@ export function GoalsManager({
     return { current: totalSeconds, percentage };
   };
 
-  // Filter to only weekly goals
+  // Only show weekly goals
   const weeklyGoals = goals.filter(g => g.type === 'weekly');
 
   return (
@@ -107,10 +101,7 @@ export function GoalsManager({
             <div className="space-y-4 pt-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Kategorie</label>
-                <Select 
-                  value={selectedCategory} 
-                  onValueChange={setSelectedCategory}
-                >
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Kategorie wählen" />
                   </SelectTrigger>
@@ -170,10 +161,6 @@ export function GoalsManager({
             const category = categories.find(c => c.id === goal.categoryId);
             if (!category) return null;
 
-            const subcategory = goal.subcategoryId 
-              ? subcategories.find(s => s.id === goal.subcategoryId)
-              : null;
-
             const { current, percentage } = calculateProgress(goal);
             const targetSeconds = goal.targetMinutes * 60;
             const isComplete = percentage >= 100;
@@ -226,21 +213,14 @@ export function GoalsManager({
                 </div>
 
                 {/* Category info */}
-                <div className="flex flex-col items-center gap-1 mb-1">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <span className="font-medium text-sm truncate max-w-[100px]">
-                      {category.name}
-                    </span>
-                  </div>
-                  {subcategory && (
-                    <span className="text-xs text-muted-foreground">
-                      {subcategory.name}
-                    </span>
-                  )}
+                <div className="flex items-center gap-2 mb-1">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  <span className="font-medium text-sm truncate max-w-[100px]">
+                    {category.name}
+                  </span>
                 </div>
 
                 {/* Time info */}
