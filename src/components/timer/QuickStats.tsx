@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Clock, Calendar, TrendingUp } from 'lucide-react';
 import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { formatHoursMinutes, getTodayStats, calculateWeeklyStats } from '@/lib/timeUtils';
@@ -8,7 +9,19 @@ interface QuickStatsProps {
   subcategories: Subcategory[];
 }
 
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 export function QuickStats({ timeEntries, categories, subcategories }: QuickStatsProps) {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1);
+    }, REFRESH_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
   const todayStats = getTodayStats(timeEntries, categories, subcategories);
   const weeklyStats = calculateWeeklyStats(timeEntries, categories, subcategories, new Date());
 
@@ -42,7 +55,7 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
         const Icon = stat.icon;
         return (
           <div
-            key={index}
+            key={`${index}-${refreshKey}`}
             className="stat-card animate-fade-in p-3 lg:p-4"
             style={{ animationDelay: `${index * 100}ms` }}
           >

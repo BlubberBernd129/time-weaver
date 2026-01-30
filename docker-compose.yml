@@ -2,33 +2,26 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.0 - Statistik, Kalender, Dashboard, Ziele
+# UI OVERHAUL v3.1 - Pausen-Anzeige, Kalender-Scroll, Mitternacht-Stopp
 # ============================================================================
 #
-# NEUE FEATURES:
+# ÄNDERUNGEN v3.1:
+#   ✅ Pausen werden in abgeschlossenen Einträgen angezeigt (Dashboard + Kalender)
+#   ✅ Kalender: 24h-Ansicht (0-24 Uhr) mit Auto-Scroll zu 7 Uhr
+#   ✅ Kalender: Pausen sind sichtbar + im Bearbeiten-Dialog editierbar
+#   ✅ Mitternacht: Timer wird um 23:59:45 gestoppt (KEIN Split mehr)
+#   ✅ Browser-Tab blinkt bei Auto-Stopp (visuelles Feedback)
+#   ✅ Auto-Refresh: Wochenziele + QuickStats alle 5 Minuten aktualisiert
+#   ✅ KW-Vergleich: Unterschiedliche Farben (Blau + Grün statt Kategorie-Farben)
 #
-# 📊 STATISTIK:
-#   - Reine Wochenbetrachtung (Kalenderwochen) - tägliche Vergleiche entfernt
-#   - Dynamische Anzeige "Stand Dienstag" für laufende Woche
-#   - Benchmark: Vergleich mit historischem 8-Wochen-Durchschnitt (gleicher Wochentag)
-#   - Manueller KW-Vergleich (2 Wochen wählen + Gesamtdurchschnitt)
-#   - Nur Hauptkategorien anzeigen (Unterkategorien ausgeblendet)
-#   - Stacked Bar Charts + Area Charts für Visualisierung
-#
-# 📅 KALENDER:
-#   - Visuelle Skalierung: Eintrags-Länge entspricht exakt der Dauer
-#   - 16-Stunden-Raster (6:00-22:00)
-#   - Formel: 1 Stunde = 1/16 der Bildschirmhöhe
-#   - Vollflächige Kategorie-Farben (nicht nur Rand)
-#
-# ⏱️ DASHBOARD:
-#   - Live-Timeline mit Pausen-Segmenten (schraffiert/semi-transparent)
-#   - On-the-fly Pause-Editing: Klicken → Länge ändern → Löschen
-#   - Glassmorphism-Design (backdrop-blur, transparente Karten)
-#
-# 🎯 ZIELE:
-#   - Nur Wochenziele (tägliche Ziele komplett entfernt)
-#   - Progress Circles/Rings für Fortschrittsanzeige
+# FEATURES v3.0:
+#   - Reine Wochenbetrachtung (Statistik)
+#   - 8-Wochen-Benchmark mit historischem Durchschnitt
+#   - Manueller KW-Vergleich
+#   - Stacked Bar Charts + Area Charts
+#   - Live-Timeline mit Pausen-Editing
+#   - Progress Rings für Wochenziele
+#   - Glassmorphism-Design
 #
 # ============================================================================
 # SYNC-FIX v2.1 - Multi-Device Timer Synchronisation
@@ -45,8 +38,6 @@
 # 1. Kopiere .env.example zu .env und passe die Werte an
 # 2. docker compose up -d --build
 # 3. Öffne http://localhost:3000 im Browser
-#
-# Die API-URL wird automatisch basierend auf dem Browser-Hostname gewählt!
 #
 # Für Updates:
 # docker compose down && docker compose up -d --build
@@ -73,7 +64,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.0.0"
+      - "com.timetracker.version=3.1.0"
 
 networks:
   default:

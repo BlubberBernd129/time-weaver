@@ -2,31 +2,26 @@
 # Multi-stage build für optimale Image-Größe
 # 
 # ============================================================================
-# UI OVERHAUL v3.0 - Statistik, Kalender, Dashboard, Ziele
+# UI OVERHAUL v3.1 - Pausen-Anzeige, Kalender-Scroll, Mitternacht-Stopp
 # ============================================================================
 #
-# STATISTIK:
-#   - Reine Wochenbetrachtung (Kalenderwochen)
-#   - Dynamische Anzeige "Stand Dienstag" für laufende Woche
-#   - Benchmark: Vergleich mit historischem 8-Wochen-Durchschnitt
-#   - Manueller KW-Vergleich (2 Wochen + Gesamtdurchschnitt)
-#   - Nur Hauptkategorien (Unterkategorien ausgeblendet)
+# ÄNDERUNGEN v3.1:
+#   - Pausen werden in abgeschlossenen Einträgen angezeigt (Dashboard + Kalender)
+#   - Kalender: 24h-Ansicht mit Auto-Scroll zu 7 Uhr
+#   - Kalender: Pausen sind sichtbar + im Dialog bearbeitbar
+#   - Mitternacht: Timer wird um 23:59:45 gestoppt (kein Split mehr)
+#   - Browser-Tab blinkt bei Auto-Stopp
+#   - Auto-Refresh: Wochenziele + Stats alle 5 Minuten
+#   - KW-Vergleich: Unterschiedliche Farben (Blau + Grün)
+#
+# FEATURES v3.0:
+#   - Reine Wochenbetrachtung (Statistik)
+#   - 8-Wochen-Benchmark mit historischem Durchschnitt
+#   - Manueller KW-Vergleich
 #   - Stacked Bar Charts + Area Charts
-#
-# KALENDER:
-#   - Visuelle Skalierung: Eintrags-Länge = Dauer
-#   - 16-Stunden-Raster (6:00-22:00)
-#   - 1 Stunde = 1/16 der Bildschirmhöhe
-#   - Vollflächige Kategorie-Farben
-#
-# DASHBOARD:
-#   - Live-Timeline mit Pausen-Segmenten (schraffiert)
-#   - On-the-fly Pause-Editing (klicken, ändern, löschen)
+#   - Live-Timeline mit Pausen-Editing
+#   - Progress Rings für Wochenziele
 #   - Glassmorphism-Design
-#
-# ZIELE:
-#   - Nur Wochenziele (tägliche Ziele entfernt)
-#   - Progress Circles/Rings für Fortschritt
 #
 # ============================================================================
 # SYNC-FIX (v2.1): Timer-Status wird NUR aus der Datenbank geladen!

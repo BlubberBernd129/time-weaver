@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { formatDuration, formatTime, formatDate } from '@/lib/timeUtils';
@@ -47,6 +47,7 @@ export function RecentEntries({
         {recentEntries.map((entry, index) => {
           const category = getCategoryById(entry.categoryId);
           const subcategory = getSubcategoryById(entry.subcategoryId);
+          const hasPauses = entry.pausePeriods && entry.pausePeriods.length > 0;
 
           return (
             <div
@@ -63,8 +64,14 @@ export function RecentEntries({
                   style={{ backgroundColor: category?.color || '#666' }}
                 />
                 <div>
-                  <div className="font-medium text-sm">
+                  <div className="font-medium text-sm flex items-center gap-2">
                     {category?.name} → {subcategory?.name}
+                    {hasPauses && (
+                      <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/10 px-1.5 py-0.5 rounded">
+                        <Pause className="w-3 h-3" />
+                        {entry.pausePeriods!.length}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {formatDate(new Date(entry.startTime))} • {formatTime(new Date(entry.startTime))} - {entry.endTime ? formatTime(new Date(entry.endTime)) : 'läuft'}

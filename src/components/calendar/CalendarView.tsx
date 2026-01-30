@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, format, getHours, getMinutes } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -11,16 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Category, Subcategory, TimeEntry, CalendarView as CalendarViewType } from '@/types/timetracker';
+import { Category, Subcategory, TimeEntry, CalendarView as CalendarViewType, PausePeriod } from '@/types/timetracker';
 import { formatTime, formatDuration, formatMonthYear, getWeekDays, formatWeekdayShort } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
 import { DraggableEntryCreator, DragHandle } from './DraggableEntryCreator';
 import { EntryDetailDialog } from './EntryDetailDialog';
 
-// 16-hour grid constants (6:00 - 22:00)
-const START_HOUR = 6;
-const END_HOUR = 22;
-const TOTAL_HOURS = END_HOUR - START_HOUR; // 16 hours
+// 24-hour grid constants (0:00 - 24:00)
+const START_HOUR = 0;
+const END_HOUR = 24;
+const TOTAL_HOURS = END_HOUR - START_HOUR; // 24 hours
+const DEFAULT_SCROLL_HOUR = 7; // Scroll to 7:00 by default
 
 interface CalendarViewProps {
   timeEntries: TimeEntry[];
@@ -255,6 +256,35 @@ function TimeScaledWeekView({
   // Generate hour markers
   const hourMarkers = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
 
+  // Scroll to 7am on mount
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const scrollPosition = (DEFAULT_SCROLL_HOUR / TOTAL_HOURS) * scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTop = scrollPosition;
+    }
+  }, []);
+
+  // Calculate pause positions within an entry
+  const getPauseStyle = (pause: PausePeriod, entryStart: Date) => {
+    const pauseStart = new Date(pause.startTime);
+    const pauseEnd = pause.endTime ? new Date(pause.endTime) : new Date();
+    
+    const pauseStartHour = getHours(pauseStart) + getMinutes(pauseStart) / 60;
+    const pauseEndHour = getHours(pauseEnd) + getMinutes(pauseEnd) / 60;
+    
+    const clampedStart = Math.max(START_HOUR, Math.min(END_HOUR, pauseStartHour));
+    const clampedEnd = Math.max(START_HOUR, Math.min(END_HOUR, pauseEndHour));
+    
+    const topPercent = ((clampedStart - START_HOUR) / TOTAL_HOURS) * 100;
+    const heightPercent = ((clampedEnd - clampedStart) / TOTAL_HOURS) * 100;
+    
+    return {
+      top: `${topPercent}%`,
+      height: `${Math.max(heightPercent, 1)}%`,
+    };
+  };
+
   return (
     <div className="glass-card p-2 lg:p-4 h-full flex flex-col overflow-hidden">
       {/* Day Headers */}
@@ -286,8 +316,8 @@ function TimeScaledWeekView({
       </div>
 
       {/* Time Grid */}
-      <div className="flex-1 overflow-y-auto relative scrollbar-thin">
-        <div className="grid grid-cols-8 gap-1 lg:gap-2 min-h-[600px] lg:min-h-[800px]">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative scrollbar-thin">
+        <div className="grid grid-cols-8 gap-1 lg:gap-2 min-h-[1200px] lg:min-h-[1600px]">
           {/* Time Column */}
           <div className="relative">
             {hourMarkers.map((hour, index) => (
@@ -329,32 +359,51 @@ function TimeScaledWeekView({
                     />
                   ))}
 
-                  {/* Time entries - full category color */}
+                  {/* Time entries - full category color with pause segments */}
                   {entries.map((entry) => {
                     const category = getCategoryById(entry.categoryId);
                     const subcategory = getSubcategoryById(entry.subcategoryId);
                     const style = getEntryStyle(entry);
 
                     return (
-                      <div
-                        key={entry.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEntryClick(entry);
-                        }}
-                        className="absolute left-1 right-1 rounded-md px-1 py-0.5 overflow-hidden cursor-pointer hover:brightness-110 transition-all shadow-sm"
-                        style={{
-                          top: style.top,
-                          height: style.height,
-                          backgroundColor: category?.color || 'hsl(var(--muted))',
-                        }}
-                      >
-                        <div className="text-[10px] lg:text-xs font-medium text-white truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                          {subcategory?.name}
+                      <div key={entry.id}>
+                        {/* Main entry block */}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEntryClick(entry);
+                          }}
+                          className="absolute left-1 right-1 rounded-md px-1 py-0.5 overflow-hidden cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                          style={{
+                            top: style.top,
+                            height: style.height,
+                            backgroundColor: category?.color || 'hsl(var(--muted))',
+                          }}
+                        >
+                          <div className="text-[10px] lg:text-xs font-medium text-white truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {subcategory?.name}
+                          </div>
+                          <div className="text-[8px] lg:text-[10px] text-white/80 truncate" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
+                            {formatDuration(entry.duration)}
+                          </div>
                         </div>
-                        <div className="text-[8px] lg:text-[10px] text-white/80 truncate" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
-                          {formatDuration(entry.duration)}
-                        </div>
+                        
+                        {/* Pause segments overlay */}
+                        {entry.pausePeriods?.map((pause, pauseIndex) => {
+                          const pauseStyle = getPauseStyle(pause, new Date(entry.startTime));
+                          return (
+                            <div
+                              key={`${entry.id}-pause-${pauseIndex}`}
+                              className="absolute left-1 right-1 rounded-sm pointer-events-none"
+                              style={{
+                                top: pauseStyle.top,
+                                height: pauseStyle.height,
+                                backgroundColor: 'hsl(var(--warning) / 0.7)',
+                                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
+                              }}
+                            />
+                          );
+                        })}
                       </div>
                     );
                   })}

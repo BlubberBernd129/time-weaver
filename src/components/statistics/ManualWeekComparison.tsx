@@ -248,12 +248,12 @@ export function ManualWeekComparison({ timeEntries, categories }: ManualWeekComp
                   <Legend />
                   <Bar 
                     dataKey={week1Label} 
-                    fill="hsl(var(--primary))"
+                    fill="hsl(217, 91%, 60%)"
                     radius={[0, 4, 4, 0]}
                   />
                   <Bar 
                     dataKey={week2Label} 
-                    fill="hsl(var(--accent))"
+                    fill="hsl(142, 71%, 45%)"
                     radius={[0, 4, 4, 0]}
                   />
                 </BarChart>
