@@ -1,9 +1,10 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { TimeEntry, TimerState } from '@/types/timetracker';
 import { pb, isAuthenticated } from '@/lib/pocketbase';
 import { toast } from 'sonner';
 
 const MAX_DURATION_SECONDS = 12 * 60 * 60; // 12 hours
+const MIDNIGHT_STOP_BUFFER_SECONDS = 15; // Stop 15 seconds before midnight (23:59:45)
 
 interface UseMidnightCheckProps {
   timerState: TimerState | null;
@@ -20,6 +21,39 @@ interface UseMidnightCheckProps {
   onUpdateEntry: (id: string, updates: Partial<TimeEntry>) => void;
 }
 
+// Flash browser tab/title when timer is auto-stopped
+function flashBrowserTab(message: string) {
+  const originalTitle = document.title;
+  let isFlashing = true;
+  let flashCount = 0;
+  const maxFlashes = 10;
+
+  const flash = () => {
+    if (!isFlashing || flashCount >= maxFlashes) {
+      document.title = originalTitle;
+      return;
+    }
+    document.title = flashCount % 2 === 0 ? `⚠️ ${message}` : originalTitle;
+    flashCount++;
+    setTimeout(flash, 500);
+  };
+
+  flash();
+
+  // Also try to use Notification API if permitted
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('TimeTracker', { body: message });
+  } else if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+
+  // Stop flashing after 5 seconds
+  setTimeout(() => {
+    isFlashing = false;
+    document.title = originalTitle;
+  }, 5000);
+}
+
 export function useMidnightCheck({
   timerState,
   timeEntries,
@@ -27,6 +61,7 @@ export function useMidnightCheck({
   onAddManualEntry,
   onUpdateEntry,
 }: UseMidnightCheckProps) {
+  const midnightStopScheduledRef = useRef(false);
   
   // Check for entries that exceed 12 hours and auto-stop
   const checkAndStopLongRunningTimer = useCallback(async () => {
@@ -38,73 +73,57 @@ export function useMidnightCheck({
 
     if (activeTime > MAX_DURATION_SECONDS) {
       console.log('Timer exceeded 12 hours, auto-stopping...');
+      flashBrowserTab('Timer gestoppt (12h Limit)');
       toast.error('Timer automatisch gestoppt: Maximale Dauer von 12 Stunden überschritten');
       await onStopTimer();
     }
   }, [timerState, onStopTimer]);
 
-  // Check for midnight crossing and split entry
-  const checkMidnightCrossing = useCallback(async () => {
+  // Check for approaching midnight and stop timer at 23:59:45
+  const checkMidnightApproaching = useCallback(async () => {
     if (!timerState?.isRunning || !timerState.startTime) return;
+    if (midnightStopScheduledRef.current) return;
 
     const now = new Date();
-    const startDate = timerState.startTime;
+    const midnight = new Date(now);
+    midnight.setHours(23, 59, 60 - MIDNIGHT_STOP_BUFFER_SECONDS, 0); // 23:59:45
     
-    // Check if we crossed midnight (start date is different from current date)
-    const startDay = startDate.toDateString();
-    const currentDay = now.toDateString();
+    const timeUntilStop = midnight.getTime() - now.getTime();
     
-    if (startDay !== currentDay) {
-      console.log('Midnight crossing detected, splitting entry...');
+    // If we're past 23:59:45 or within 30 seconds of it, stop now
+    if (timeUntilStop <= 0 && now.getHours() === 23 && now.getMinutes() === 59) {
+      console.log('Midnight approaching, stopping timer at 23:59:45...');
+      midnightStopScheduledRef.current = true;
+      flashBrowserTab('Timer gestoppt (Mitternacht)');
+      toast.info('Timer automatisch um 23:59:45 gestoppt');
+      await onStopTimer();
       
-      // Calculate midnight of the current day
-      const midnight = new Date(now);
-      midnight.setHours(0, 0, 0, 0);
-      
-      // Stop the current timer (this will create an entry ending now)
-      const stoppedEntry = await onStopTimer();
-      
-      if (stoppedEntry && timerState.categoryId && timerState.subcategoryId) {
-        // Update the stopped entry to end at midnight instead
-        const endAtMidnight = new Date(midnight.getTime() - 1); // 23:59:59.999 of previous day
-        const durationUntilMidnight = Math.floor((endAtMidnight.getTime() - startDate.getTime()) / 1000);
-        const calculatedDuration = Math.max(0, durationUntilMidnight - timerState.totalPausedTime);
-        
-        // Update entry to end at midnight (this will also update PocketBase)
-        onUpdateEntry(stoppedEntry.id, {
-          endTime: endAtMidnight,
-          duration: calculatedDuration,
-        });
-        
-        // Create a new entry starting at midnight
-        await onAddManualEntry(
-          timerState.categoryId,
-          timerState.subcategoryId,
-          midnight,
-          now,
-          stoppedEntry.description
-        );
-        
-        toast.info('Eintrag wurde bei Mitternacht geteilt');
-      }
+      // Reset flag after midnight
+      setTimeout(() => {
+        midnightStopScheduledRef.current = false;
+      }, 60000); // Reset after 1 minute
     }
-  }, [timerState, onStopTimer, onAddManualEntry, onUpdateEntry]);
+  }, [timerState, onStopTimer]);
 
   // Run checks periodically
   useEffect(() => {
-    if (!timerState?.isRunning) return;
+    if (!timerState?.isRunning) {
+      midnightStopScheduledRef.current = false;
+      return;
+    }
 
     // Check immediately
     checkAndStopLongRunningTimer();
+    checkMidnightApproaching();
     
-    // Check every minute
+    // Check every 10 seconds for more precise midnight detection
     const interval = setInterval(() => {
       checkAndStopLongRunningTimer();
-      checkMidnightCrossing();
-    }, 60 * 1000);
+      checkMidnightApproaching();
+    }, 10 * 1000);
 
     return () => clearInterval(interval);
-  }, [timerState?.isRunning, checkAndStopLongRunningTimer, checkMidnightCrossing]);
+  }, [timerState?.isRunning, checkAndStopLongRunningTimer, checkMidnightApproaching]);
 
   // Check on initial load for any entries that might have crossed midnight while app was closed
   useEffect(() => {
@@ -115,9 +134,13 @@ export function useMidnightCheck({
       const startDay = timerState.startTime.toDateString();
       const currentDay = now.toDateString();
 
-      // If running entry is from a previous day, handle it
+      // If running entry is from a previous day, stop it immediately
       if (startDay !== currentDay) {
-        await checkMidnightCrossing();
+        console.log('Timer from previous day detected, stopping...');
+        flashBrowserTab('Timer gestoppt (neuer Tag)');
+        toast.warning('Timer vom Vortag automatisch gestoppt');
+        await onStopTimer();
+        return;
       }
 
       // If running entry is too old, stop it

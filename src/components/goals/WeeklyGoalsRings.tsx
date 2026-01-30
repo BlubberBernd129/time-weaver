@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Target, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 interface WeeklyGoalsRingsProps {
   categories: Category[];
@@ -41,6 +43,15 @@ export function WeeklyGoalsRings({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [targetHours, setTargetHours] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1);
+    }, REFRESH_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
 
   const today = new Date();
   const activeEntries = timeEntries.filter(e => !e.isPause);

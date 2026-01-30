@@ -200,30 +200,50 @@ export function DayTimeline({
             </div>
           )}
 
-          {/* Completed time entries */}
+          {/* Completed time entries with pause segments */}
           {todayEntries.map((entry) => {
             const category = getCategoryById(entry.categoryId);
             const subcategory = getSubcategoryById(entry.subcategoryId);
             const { top, height } = getEntryStyle(new Date(entry.startTime), entry.endTime ? new Date(entry.endTime) : null);
+            const hasPauses = entry.pausePeriods && entry.pausePeriods.length > 0;
 
             return (
-              <div
-                key={entry.id}
-                className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden transition-colors duration-300"
-                style={{
-                  top: `${top}px`,
-                  height: `${height}px`,
-                  backgroundColor: category?.color || 'hsl(var(--muted))',
-                }}
-              >
-                <div className="text-xs font-medium text-white truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                  {subcategory?.name}
-                </div>
-                {height > 30 && (
-                  <div className="text-[10px] text-white/80" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
-                    {format(new Date(entry.startTime), 'HH:mm')} - {entry.endTime ? format(new Date(entry.endTime), 'HH:mm') : 'läuft'}
+              <div key={entry.id}>
+                {/* Main entry block */}
+                <div
+                  className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden transition-colors duration-300"
+                  style={{
+                    top: `${top}px`,
+                    height: `${height}px`,
+                    backgroundColor: category?.color || 'hsl(var(--muted))',
+                  }}
+                >
+                  <div className="text-xs font-medium text-white truncate" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                    {subcategory?.name}
                   </div>
-                )}
+                  {height > 30 && (
+                    <div className="text-[10px] text-white/80" style={{ textShadow: '0 1px 1px rgba(0,0,0,0.3)' }}>
+                      {format(new Date(entry.startTime), 'HH:mm')} - {entry.endTime ? format(new Date(entry.endTime), 'HH:mm') : 'läuft'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pause segments overlay for completed entries */}
+                {hasPauses && entry.pausePeriods!.map((pause, pauseIndex) => {
+                  const pauseStyle = getPauseStyle(pause, new Date(entry.startTime));
+                  return (
+                    <div
+                      key={`${entry.id}-pause-${pauseIndex}`}
+                      className="absolute left-14 right-2 rounded-sm pointer-events-none"
+                      style={{
+                        top: `${pauseStyle.top}px`,
+                        height: `${Math.max(pauseStyle.height, 5)}px`,
+                        backgroundColor: 'hsl(var(--warning) / 0.7)',
+                        backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
+                      }}
+                    />
+                  );
+                })}
               </div>
             );
           })}

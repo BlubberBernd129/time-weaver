@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Clock, Calendar as CalendarIcon, Tag, Pencil, Trash2 } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Tag, Pencil, Trash2, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TimeEntry, Category, Subcategory } from '@/types/timetracker';
+import { Separator } from '@/components/ui/separator';
+import { TimeEntry, Category, Subcategory, PausePeriod } from '@/types/timetracker';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/timeUtils';
+import { PausePeriodsEditor } from '@/components/timer/PausePeriodsEditor';
 
 interface EntryDetailDialogProps {
   entry: TimeEntry | null;
@@ -44,6 +46,7 @@ export function EntryDetailDialog({
   const [startTime, setStartTime] = useState(entry ? format(new Date(entry.startTime), 'HH:mm') : '');
   const [endTime, setEndTime] = useState(entry?.endTime ? format(new Date(entry.endTime), 'HH:mm') : '');
   const [description, setDescription] = useState(entry?.description || '');
+  const [pausePeriods, setPausePeriods] = useState<PausePeriod[]>(entry?.pausePeriods || []);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen && entry) {
@@ -51,6 +54,7 @@ export function EntryDetailDialog({
       setStartTime(format(new Date(entry.startTime), 'HH:mm'));
       setEndTime(entry.endTime ? format(new Date(entry.endTime), 'HH:mm') : '');
       setDescription(entry.description || '');
+      setPausePeriods(entry.pausePeriods || []);
       setIsEditing(false);
     }
     onOpenChange(isOpen);
@@ -72,13 +76,21 @@ export function EntryDetailDialog({
       newEndTime.setDate(newEndTime.getDate() + 1);
     }
 
-    const duration = Math.floor((newEndTime.getTime() - newStartTime.getTime()) / 1000);
+    // Calculate total paused time
+    const totalPausedSeconds = pausePeriods.reduce((acc, p) => {
+      if (!p.endTime) return acc;
+      return acc + Math.floor((new Date(p.endTime).getTime() - new Date(p.startTime).getTime()) / 1000);
+    }, 0);
+
+    const totalDuration = Math.floor((newEndTime.getTime() - newStartTime.getTime()) / 1000);
+    const activeDuration = Math.max(0, totalDuration - totalPausedSeconds);
 
     onUpdate(entry.id, {
       startTime: newStartTime,
       endTime: newEndTime,
-      duration,
+      duration: activeDuration,
       description: description || undefined,
+      pausePeriods: pausePeriods,
     });
 
     setIsEditing(false);
@@ -171,7 +183,18 @@ export function EntryDetailDialog({
               />
             </div>
 
-            <div className="flex gap-2">
+            <Separator className="my-4" />
+
+            {/* Pause Periods Editor */}
+            <PausePeriodsEditor
+              pausePeriods={pausePeriods}
+              entryDate={date}
+              entryStartTime={startTime}
+              entryEndTime={endTime}
+              onChange={setPausePeriods}
+            />
+
+            <div className="flex gap-2 mt-4">
               <Button variant="outline" onClick={() => setIsEditing(false)} className="flex-1">
                 Abbrechen
               </Button>
@@ -207,9 +230,38 @@ export function EntryDetailDialog({
               <Clock className="w-5 h-5 text-muted-foreground" />
               <div>
                 <div className="font-medium font-mono">{formatDuration(entry.duration)}</div>
-                <div className="text-sm text-muted-foreground">Dauer</div>
+                <div className="text-sm text-muted-foreground">
+                  Dauer {entry.pausePeriods && entry.pausePeriods.length > 0 && `(${entry.pausePeriods.length} Pause${entry.pausePeriods.length > 1 ? 'n' : ''})`}
+                </div>
               </div>
             </div>
+
+            {/* Pause periods display */}
+            {entry.pausePeriods && entry.pausePeriods.length > 0 && (
+              <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Pause className="w-4 h-4 text-warning" />
+                  <span className="text-sm font-medium">Pausen</span>
+                </div>
+                <div className="space-y-1">
+                  {entry.pausePeriods.map((pause, index) => {
+                    const pauseStart = new Date(pause.startTime);
+                    const pauseEnd = pause.endTime ? new Date(pause.endTime) : null;
+                    const pauseDuration = pauseEnd 
+                      ? Math.floor((pauseEnd.getTime() - pauseStart.getTime()) / 1000)
+                      : 0;
+                    return (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {format(pauseStart, 'HH:mm')} - {pauseEnd ? format(pauseEnd, 'HH:mm') : 'läuft'}
+                        </span>
+                        <span className="font-mono">{formatDuration(pauseDuration)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             {entry.description && (
