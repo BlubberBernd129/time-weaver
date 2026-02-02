@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, List, FolderTree, Calendar, BarChart3, Menu, LogOut } from 'lucide-react';
+import { Clock, LayoutDashboard, List, FolderTree, Calendar, BarChart3, Menu, LogOut, Package, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/timetracker';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,12 @@ const navItems: { id: ViewMode; label: string; icon: React.ElementType }[] = [
   { id: 'categories', label: 'Kategorien', icon: FolderTree },
   { id: 'calendar', label: 'Kalender', icon: Calendar },
   { id: 'statistics', label: 'Statistik', icon: BarChart3 },
+  { id: 'collection', label: 'Sammlung', icon: Package },
+  { id: 'recap', label: 'Rückblick', icon: CalendarDays },
 ];
+
+// Bottom nav shows only first 5 items (space constrained)
+const bottomNavItems = navItems.slice(0, 5);
 
 export function MobileNav({ currentView, onViewChange }: MobileNavProps) {
   const [open, setOpen] = useState(false);
@@ -106,7 +111,7 @@ export function MobileNav({ currentView, onViewChange }: MobileNavProps) {
 export function MobileBottomNav({ currentView, onViewChange }: MobileNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 bg-sidebar border-t border-sidebar-border flex items-center justify-around z-50 lg:hidden safe-area-bottom">
-      {navItems.map((item) => {
+      {bottomNavItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentView === item.id;
         

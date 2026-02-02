@@ -5,7 +5,8 @@ import { RecentEntries } from '@/components/timer/RecentEntries';
 import { DayTimeline } from './DayTimeline';
 import { WeeklyGoalsRings } from '@/components/goals/WeeklyGoalsRings';
 import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface DashboardProps {
   categories: Category[];
@@ -36,6 +37,7 @@ interface DashboardProps {
   getSubcategoriesForCategory: (categoryId: string) => Subcategory[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
+  onOpenBattlePass?: () => void;
 }
 
 export function Dashboard({
@@ -60,6 +62,7 @@ export function Dashboard({
   getSubcategoriesForCategory,
   getCategoryById,
   getSubcategoryById,
+  onOpenBattlePass,
 }: DashboardProps) {
   // Filter to only weekly goals
   const weeklyGoals = goals.filter(g => g.type === 'weekly');
@@ -85,11 +88,23 @@ export function Dashboard({
             <LayoutDashboard className="w-6 h-6 text-primary" />
             <h1 className="text-xl lg:text-2xl font-bold">Dashboard</h1>
           </div>
-          <ManualEntryDialog
-            categories={categories}
-            getSubcategoriesForCategory={getSubcategoriesForCategory}
-            onAddEntry={onAddManualEntry}
-          />
+          <div className="flex items-center gap-2">
+            {onOpenBattlePass && (
+              <Button
+                variant="outline"
+                onClick={onOpenBattlePass}
+                className="gap-2 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30 hover:from-primary/20 hover:to-secondary/20"
+              >
+                <Trophy className="w-4 h-4 text-primary" />
+                Diese Woche
+              </Button>
+            )}
+            <ManualEntryDialog
+              categories={categories}
+              getSubcategoriesForCategory={getSubcategoriesForCategory}
+              onAddEntry={onAddManualEntry}
+            />
+          </div>
         </div>
 
         {/* Quick Stats */}
