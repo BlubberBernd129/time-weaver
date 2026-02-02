@@ -6,14 +6,20 @@ import { AllEntriesView } from '@/components/entries/AllEntriesView';
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { StatisticsView } from '@/components/statistics/StatisticsView';
+import { CollectionTab } from '@/components/gamification/CollectionTab';
+import { WeeklyRecap } from '@/components/gamification/WeeklyRecap';
+import { WeeklyBattlePass } from '@/components/gamification/WeeklyBattlePass';
 import { PasswordGate } from '@/components/auth/PasswordGate';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { useMidnightCheck } from '@/hooks/useMidnightCheck';
+import { useGamification, TOTAL_MILESTONES } from '@/hooks/useGamification';
 import { ViewMode } from '@/types/timetracker';
 import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
+  const [battlePassOpen, setBattlePassOpen] = useState(false);
+  
   const {
     categories,
     subcategories,
@@ -44,6 +50,11 @@ const Index = () => {
     getCategoryById,
     getSubcategoryById,
   } = useTimeTracker();
+
+  const {
+    collectedItems,
+    collectItem,
+  } = useGamification();
 
   // Midnight check and 12-hour auto-stop
   useMidnightCheck({
@@ -91,6 +102,7 @@ const Index = () => {
             getSubcategoriesForCategory={getSubcategoriesForCategory}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
+            onOpenBattlePass={() => setBattlePassOpen(true)}
           />
         );
       case 'entries':
@@ -141,6 +153,20 @@ const Index = () => {
             subcategories={subcategories}
           />
         );
+      case 'collection':
+        return (
+          <CollectionTab
+            collectedItems={collectedItems}
+            totalPossibleItems={TOTAL_MILESTONES}
+          />
+        );
+      case 'recap':
+        return (
+          <WeeklyRecap
+            timeEntries={timeEntries}
+            categories={categories}
+          />
+        );
       default:
         return null;
     }
@@ -162,6 +188,16 @@ const Index = () => {
             {renderView()}
           </div>
         </main>
+
+        {/* Battle Pass Dialog */}
+        <WeeklyBattlePass
+          open={battlePassOpen}
+          onOpenChange={setBattlePassOpen}
+          timeEntries={timeEntries}
+          categories={categories}
+          collectedItems={collectedItems}
+          onCollectItem={collectItem}
+        />
       </div>
     </PasswordGate>
   );

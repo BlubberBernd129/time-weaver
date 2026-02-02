@@ -2,17 +2,25 @@
 # Multi-stage build für optimale Image-Größe
 # 
 # ============================================================================
-# UI OVERHAUL v3.1 - Pausen-Anzeige, Kalender-Scroll, Mitternacht-Stopp
+# UI OVERHAUL v3.2 - Gamification System mit Battle Pass
 # ============================================================================
 #
-# ÄNDERUNGEN v3.1:
-#   - Pausen werden in abgeschlossenen Einträgen angezeigt (Dashboard + Kalender)
+# ÄNDERUNGEN v3.2:
+#   - Battle Pass: Klick auf "Diese Woche" öffnet Wochen-Übersicht
+#   - Kategorien-Fortschritt im Battle-Pass-Style
+#   - Reward Track: Items alle 5h (bis 40h), danach alle 1h (bis 80h)
+#   - Sammlung-Tab: Zeigt alle gesammelten Items mit Statistiken
+#   - Wochenrückblick-Tab: Detaillierte Wochen-Zusammenfassung
+#   - Auto-Collect: Items werden automatisch eingesammelt
+#   - Persistenz: Gesammelte Items bleiben über Wochen erhalten
+#
+# FEATURES v3.1:
+#   - Pausen werden in abgeschlossenen Einträgen angezeigt
 #   - Kalender: 24h-Ansicht mit Auto-Scroll zu 7 Uhr
 #   - Kalender: Pausen sind sichtbar + im Dialog bearbeitbar
-#   - Mitternacht: Timer wird um 23:59:45 gestoppt (kein Split mehr)
+#   - Mitternacht: Timer wird um 23:59:45 gestoppt
 #   - Browser-Tab blinkt bei Auto-Stopp
 #   - Auto-Refresh: Wochenziele + Stats alle 5 Minuten
-#   - KW-Vergleich: Unterschiedliche Farben (Blau + Grün)
 #
 # FEATURES v3.0:
 #   - Reine Wochenbetrachtung (Statistik)
@@ -26,11 +34,6 @@
 # ============================================================================
 # SYNC-FIX (v2.1): Timer-Status wird NUR aus der Datenbank geladen!
 # ============================================================================
-#
-# API-Routing (dynamisch basierend auf Browser-Hostname):
-# - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
-# - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
-# - Remote (Cloudflare): https://api.nick-cloud.org
 
 # Build Stage
 FROM node:20-alpine AS builder

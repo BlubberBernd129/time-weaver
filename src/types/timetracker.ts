@@ -90,5 +90,5 @@ export interface MonthlyStats {
   weeklyBreakdown: WeeklyStats[];
 }
 
-export type ViewMode = 'dashboard' | 'entries' | 'categories' | 'calendar' | 'statistics';
+export type ViewMode = 'dashboard' | 'entries' | 'categories' | 'calendar' | 'statistics' | 'collection' | 'recap';
 export type CalendarView = 'week' | 'month';

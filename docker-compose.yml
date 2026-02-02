@@ -2,17 +2,25 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.1 - Pausen-Anzeige, Kalender-Scroll, Mitternacht-Stopp
+# UI OVERHAUL v3.2 - Gamification System mit Battle Pass
 # ============================================================================
 #
-# ÄNDERUNGEN v3.1:
-#   ✅ Pausen werden in abgeschlossenen Einträgen angezeigt (Dashboard + Kalender)
-#   ✅ Kalender: 24h-Ansicht (0-24 Uhr) mit Auto-Scroll zu 7 Uhr
-#   ✅ Kalender: Pausen sind sichtbar + im Bearbeiten-Dialog editierbar
-#   ✅ Mitternacht: Timer wird um 23:59:45 gestoppt (KEIN Split mehr)
-#   ✅ Browser-Tab blinkt bei Auto-Stopp (visuelles Feedback)
-#   ✅ Auto-Refresh: Wochenziele + QuickStats alle 5 Minuten aktualisiert
-#   ✅ KW-Vergleich: Unterschiedliche Farben (Blau + Grün statt Kategorie-Farben)
+# ÄNDERUNGEN v3.2:
+#   ✅ Battle Pass: Klick auf "Diese Woche" öffnet Wochen-Übersicht
+#   ✅ Kategorien-Fortschritt im Battle-Pass-Style (horizontale Balken)
+#   ✅ Reward Track: Items alle 5h (bis 40h), danach alle 1h (bis 80h)
+#   ✅ Sammlung-Tab: Zeigt alle gesammelten Items mit Statistiken
+#   ✅ Wochenrückblick-Tab: Detaillierte Wochen-Zusammenfassung
+#   ✅ Auto-Collect: Items werden automatisch beim Öffnen eingesammelt
+#   ✅ Persistenz: Gesammelte Items werden in localStorage gespeichert
+#
+# FEATURES v3.1:
+#   - Pausen werden in abgeschlossenen Einträgen angezeigt
+#   - Kalender: 24h-Ansicht mit Auto-Scroll zu 7 Uhr
+#   - Kalender: Pausen sind sichtbar + im Dialog bearbeitbar
+#   - Mitternacht: Timer wird um 23:59:45 gestoppt
+#   - Browser-Tab blinkt bei Auto-Stopp
+#   - Auto-Refresh: Wochenziele + Stats alle 5 Minuten
 #
 # FEATURES v3.0:
 #   - Reine Wochenbetrachtung (Statistik)
@@ -24,22 +32,7 @@
 #   - Glassmorphism-Design
 #
 # ============================================================================
-# SYNC-FIX v2.1 - Multi-Device Timer Synchronisation
-# ============================================================================
-# Timer-Status wird NUR aus der Datenbank geladen (localStorage ignoriert)
-#
-# ============================================================================
-# API-Routing (dynamisch basierend auf Browser-Hostname):
-# - Lokal (192.168.178.43/localhost): http://192.168.178.43:8090
-# - Strato-Relay (rtracker.nick-cloud.org): https://rapi.nick-cloud.org
-# - Remote (Cloudflare): https://api.nick-cloud.org
-#
 # Verwendung:
-# 1. Kopiere .env.example zu .env und passe die Werte an
-# 2. docker compose up -d --build
-# 3. Öffne http://localhost:3000 im Browser
-#
-# Für Updates:
 # docker compose down && docker compose up -d --build
 
 services:
@@ -64,7 +57,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.1.0"
+      - "com.timetracker.version=3.2.0"
 
 networks:
   default:
