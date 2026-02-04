@@ -2,17 +2,23 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.2 - Gamification System mit Battle Pass
+# UI OVERHAUL v3.3 - Battle Pass UI Improvements
 # ============================================================================
 #
-# ÄNDERUNGEN v3.2:
-#   ✅ Battle Pass: Klick auf "Diese Woche" öffnet Wochen-Übersicht
-#   ✅ Kategorien-Fortschritt im Battle-Pass-Style (horizontale Balken)
-#   ✅ Reward Track: Items alle 5h (bis 40h), danach alle 1h (bis 80h)
-#   ✅ Sammlung-Tab: Zeigt alle gesammelten Items mit Statistiken
-#   ✅ Wochenrückblick-Tab: Detaillierte Wochen-Zusammenfassung
-#   ✅ Auto-Collect: Items werden automatisch beim Öffnen eingesammelt
-#   ✅ Persistenz: Gesammelte Items werden in localStorage gespeichert
+# ÄNDERUNGEN v3.3:
+#   ✅ Kalender: Unnötige innere Scrollbar entfernt
+#   ✅ Battle Pass: Nur Reward-Schiene scrollbar, nicht das ganze Fenster
+#   ✅ Fortschrittsbalken: Endet mit Punkt-Marker statt smooth
+#   ✅ Auto-Scroll: Punkt wird bei 75% der Scrollbar-Breite positioniert
+#
+# FEATURES v3.2:
+#   - Battle Pass: Klick auf "Diese Woche" öffnet Wochen-Übersicht
+#   - Kategorien-Fortschritt im Battle-Pass-Style (horizontale Balken)
+#   - Reward Track: Items alle 5h (bis 40h), danach alle 1h (bis 80h)
+#   - Sammlung-Tab: Zeigt alle gesammelten Items mit Statistiken
+#   - Wochenrückblick-Tab: Detaillierte Wochen-Zusammenfassung
+#   - Auto-Collect: Items werden automatisch beim Öffnen eingesammelt
+#   - Persistenz: Gesammelte Items werden in localStorage gespeichert
 #
 # FEATURES v3.1:
 #   - Pausen werden in abgeschlossenen Einträgen angezeigt
@@ -57,7 +63,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.2.0"
+      - "com.timetracker.version=3.3.0"
 
 networks:
   default:

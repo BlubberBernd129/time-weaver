@@ -286,7 +286,7 @@ function TimeScaledWeekView({
   };
 
   return (
-    <div className="glass-card p-2 lg:p-4 h-full flex flex-col overflow-hidden">
+    <div className="glass-card p-2 lg:p-4 h-full flex flex-col">
       {/* Day Headers */}
       <div className="grid grid-cols-8 gap-1 lg:gap-2 mb-2 flex-shrink-0">
         {/* Time column header */}
@@ -316,7 +316,7 @@ function TimeScaledWeekView({
       </div>
 
       {/* Time Grid */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto relative scrollbar-thin">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden relative" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <div className="grid grid-cols-8 gap-1 lg:gap-2 min-h-[1200px] lg:min-h-[1600px]">
           {/* Time Column */}
           <div className="relative">
