@@ -112,31 +112,36 @@ export function WeeklyBattlePass({
     }
   }, [open, totalHours]);
 
-  // Calculate exact position for progress indicator
+  // Item dimensions - larger spacing for better alignment
+  const ITEM_WIDTH = 56; // w-14 = 56px
+  const SPACING_LARGE = 40; // gap for ≤40h milestones
+  const SPACING_SMALL = 16; // gap for >40h milestones
+
+  // Calculate exact position for progress indicator (aligned to center of items)
   const getProgressPosition = () => {
-    // Find position based on milestones
-    let totalWidth = 0;
-    const itemWidth = 48; // w-12 = 48px
-    const spacingLarge = 24; // mr-6 = 24px (for ≤40h)
-    const spacingSmall = 8; // mr-2 = 8px (for >40h)
+    let position = ITEM_WIDTH / 2; // Start at center of first item
     
     for (let i = 0; i < MILESTONES.length; i++) {
       const hours = MILESTONES[i];
-      const nextHours = MILESTONES[i + 1] || hours;
+      const prevHours = i > 0 ? MILESTONES[i - 1] : 0;
+      const spacing = hours <= 40 ? SPACING_LARGE : SPACING_SMALL;
+      const segmentWidth = ITEM_WIDTH + spacing;
       
       if (totalHours < hours) {
         // Calculate partial position within this segment
-        const prevHours = i > 0 ? MILESTONES[i - 1] : 0;
         const segmentProgress = (totalHours - prevHours) / (hours - prevHours);
-        const spacing = hours <= 40 ? spacingLarge : spacingSmall;
-        return totalWidth + (itemWidth + spacing) * segmentProgress;
+        return position + segmentWidth * segmentProgress - ITEM_WIDTH / 2;
       }
       
-      const spacing = hours <= 40 ? spacingLarge : spacingSmall;
-      totalWidth += itemWidth + spacing;
+      position += segmentWidth;
     }
     
-    return totalWidth;
+    return position - ITEM_WIDTH / 2;
+  };
+
+  // Get spacing class for milestone
+  const getSpacingClass = (hours: number) => {
+    return hours <= 40 ? 'mr-10' : 'mr-4';
   };
 
   return (
@@ -261,20 +266,18 @@ export function WeeklyBattlePass({
                     const reward = REWARD_ITEMS[idx % REWARD_ITEMS.length];
                     const RewardIcon = reward.icon;
                     
-                    // Calculate spacing - closer together after 40h
-                    const spacing = hours <= 40 ? 'mr-6' : 'mr-2';
                     
                     return (
                       <div
                         key={idx}
                         className={cn(
                           "flex flex-col items-center group relative",
-                          spacing
+                          getSpacingClass(hours)
                         )}
                       >
                         <div
                           className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 border-2",
+                            "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 border-2",
                             isCollected
                               ? "bg-gradient-to-br from-primary to-secondary border-primary/50 shadow-lg shadow-primary/30 scale-110"
                               : isReached
