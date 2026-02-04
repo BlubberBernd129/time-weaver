@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { X, Trophy, Star, Gem, Crown, Zap, Target, Award, Medal, Flame, Rocket, Gift, Heart, Shield, Sparkles } from 'lucide-react';
@@ -69,6 +69,7 @@ export function WeeklyBattlePass({
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const weekNumber = getWeek(currentDate, { weekStartsOn: 1 });
+  const rewardTrackRef = useRef<HTMLDivElement>(null);
 
   // Get this week's entries (excluding pauses)
   const weekEntries = getEntriesForWeek(timeEntries.filter(e => !e.isPause), currentDate);
@@ -99,10 +100,49 @@ export function WeeklyBattlePass({
     }
   }, [open, totalHours]);
 
+  // Scroll to current progress position (75% from left edge)
+  useEffect(() => {
+    if (open && rewardTrackRef.current && totalHours > 0) {
+      const container = rewardTrackRef.current;
+      const progressPercent = Math.min(totalHours / 80, 1);
+      const scrollableWidth = container.scrollWidth - container.clientWidth;
+      // Scroll so the progress point is at 75% from left edge
+      const targetScroll = (progressPercent * container.scrollWidth) - (container.clientWidth * 0.75);
+      container.scrollLeft = Math.max(0, Math.min(targetScroll, scrollableWidth));
+    }
+  }, [open, totalHours]);
+
+  // Calculate exact position for progress indicator
+  const getProgressPosition = () => {
+    // Find position based on milestones
+    let totalWidth = 0;
+    const itemWidth = 48; // w-12 = 48px
+    const spacingLarge = 24; // mr-6 = 24px (for ≤40h)
+    const spacingSmall = 8; // mr-2 = 8px (for >40h)
+    
+    for (let i = 0; i < MILESTONES.length; i++) {
+      const hours = MILESTONES[i];
+      const nextHours = MILESTONES[i + 1] || hours;
+      
+      if (totalHours < hours) {
+        // Calculate partial position within this segment
+        const prevHours = i > 0 ? MILESTONES[i - 1] : 0;
+        const segmentProgress = (totalHours - prevHours) / (hours - prevHours);
+        const spacing = hours <= 40 ? spacingLarge : spacingSmall;
+        return totalWidth + (itemWidth + spacing) * segmentProgress;
+      }
+      
+      const spacing = hours <= 40 ? spacingLarge : spacingSmall;
+      totalWidth += itemWidth + spacing;
+    }
+    
+    return totalWidth;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5 border-primary/20">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-br from-background via-background to-primary/5 border-primary/20">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 text-2xl">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
               <Trophy className="w-5 h-5 text-primary-foreground" />
@@ -116,10 +156,10 @@ export function WeeklyBattlePass({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 flex flex-col min-h-0 space-y-6">
           {/* Total Progress Header */}
-          <div className="glass-card p-6 bg-gradient-to-r from-primary/10 to-secondary/10">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass-card p-6 bg-gradient-to-r from-primary/10 to-secondary/10 flex-shrink-0">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Gesamtzeit diese Woche</p>
                 <p className="text-4xl font-bold text-primary">{formatHoursMinutes(totalSeconds)}</p>
@@ -134,7 +174,7 @@ export function WeeklyBattlePass({
           </div>
 
           {/* Category Battle Pass Bars */}
-          <div className="space-y-3">
+          <div className="space-y-3 flex-shrink-0">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Zap className="w-5 h-5 text-primary" />
               Kategorien Fortschritt
@@ -145,7 +185,7 @@ export function WeeklyBattlePass({
                 <p className="text-muted-foreground">Starte deinen Timer um Fortschritt zu sehen!</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                 {categoryStats.map((cat, index) => (
                   <div
                     key={cat.categoryId}
@@ -184,21 +224,33 @@ export function WeeklyBattlePass({
             )}
           </div>
 
-          {/* Reward Track */}
-          <div className="space-y-3">
+          {/* Reward Track - Only this section scrolls horizontally */}
+          <div className="space-y-3 flex-shrink-0">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Gift className="w-5 h-5 text-secondary" />
               Belohnungs-Schiene
             </h3>
             
-            <div className="glass-card p-4 overflow-x-auto">
+            <div 
+              ref={rewardTrackRef}
+              className="glass-card p-4 overflow-x-auto scrollbar-thin"
+            >
               <div className="relative min-w-max">
-                {/* Progress line */}
-                <div className="absolute top-1/2 left-0 right-0 h-2 bg-secondary/30 rounded-full -translate-y-1/2">
+                {/* Progress line with dot endpoint */}
+                <div className="absolute top-1/2 left-0 h-2 bg-secondary/30 rounded-full -translate-y-1/2" style={{ width: 'calc(100% - 24px)' }}>
+                  {/* Progress fill with dot end */}
                   <div
-                    className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((totalHours / 80) * 100, 100)}%` }}
-                  />
+                    className="h-full bg-gradient-to-r from-primary to-primary rounded-l-full transition-none relative"
+                    style={{ 
+                      width: `${getProgressPosition()}px`,
+                      maxWidth: '100%',
+                    }}
+                  >
+                    {/* Dot endpoint */}
+                    <div 
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-primary shadow-lg shadow-primary/50 border-2 border-primary-foreground"
+                    />
+                  </div>
                 </div>
                 
                 {/* Milestone items */}
