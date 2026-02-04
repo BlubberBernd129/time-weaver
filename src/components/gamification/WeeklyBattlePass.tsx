@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { X, Trophy, Star, Gem, Crown, Zap, Target, Award, Medal, Flame, Rocket, Gift, Heart, Shield, Sparkles } from 'lucide-react';
+import { Trophy, Star, Gem, Crown, Zap, Target, Award, Medal, Flame, Rocket, Gift, Heart, Shield, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Category, TimeEntry } from '@/types/timetracker';
 import { getEntriesForWeek, formatHoursMinutes } from '@/lib/timeUtils';
 import { cn } from '@/lib/utils';
@@ -70,6 +68,9 @@ export function WeeklyBattlePass({
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const weekNumber = getWeek(currentDate, { weekStartsOn: 1 });
   const rewardTrackRef = useRef<HTMLDivElement>(null);
+  const trackContentRef = useRef<HTMLDivElement>(null);
+  const milestoneRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [progressPx, setProgressPx] = useState(0);
 
   // Get this week's entries (excluding pauses)
   const weekEntries = getEntriesForWeek(timeEntries.filter(e => !e.isPause), currentDate);
@@ -100,48 +101,90 @@ export function WeeklyBattlePass({
     }
   }, [open, totalHours]);
 
-  // Scroll to current progress position (75% from left edge)
-  useEffect(() => {
-    if (open && rewardTrackRef.current && totalHours > 0) {
-      const container = rewardTrackRef.current;
-      const progressPercent = Math.min(totalHours / 80, 1);
-      const scrollableWidth = container.scrollWidth - container.clientWidth;
-      // Scroll so the progress point is at 75% from left edge
-      const targetScroll = (progressPercent * container.scrollWidth) - (container.clientWidth * 0.75);
-      container.scrollLeft = Math.max(0, Math.min(targetScroll, scrollableWidth));
+  const milestoneHours = useMemo(() => MILESTONES, []);
+
+  const computeProgressPx = () => {
+    const contentEl = trackContentRef.current;
+    if (!contentEl) return 0;
+
+    const contentRect = contentEl.getBoundingClientRect();
+
+    const centers = milestoneHours
+      .map((hour, idx) => {
+        const el = milestoneRefs.current[idx];
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return {
+          hour,
+          x: r.left - contentRect.left + r.width / 2,
+        };
+      })
+      .filter(Boolean) as Array<{ hour: number; x: number }>;
+
+    if (centers.length === 0) return 0;
+
+    // Extrapolate a reasonable x-position for 0h based on the 5h→10h distance.
+    let xAtZero = 0;
+    if (centers.length >= 2) {
+      const dx = centers[1].x - centers[0].x;
+      xAtZero = centers[0].x - dx;
+    } else {
+      xAtZero = Math.max(0, centers[0].x);
     }
+
+    if (totalHours <= 0) return Math.max(0, xAtZero);
+
+    // Before first milestone (5h)
+    if (totalHours < centers[0].hour) {
+      const ratio = totalHours / centers[0].hour;
+      return xAtZero + (centers[0].x - xAtZero) * ratio;
+    }
+
+    // Between milestones
+    for (let i = 1; i < centers.length; i++) {
+      const lower = centers[i - 1];
+      const upper = centers[i];
+      if (totalHours <= upper.hour) {
+        const ratio = (totalHours - lower.hour) / (upper.hour - lower.hour);
+        return lower.x + (upper.x - lower.x) * ratio;
+      }
+    }
+
+    // Past last milestone
+    return centers[centers.length - 1].x;
+  };
+
+  // Measure progress pixel position (matches real icon layout)
+  useEffect(() => {
+    if (!open) return;
+
+    const raf = requestAnimationFrame(() => {
+      setProgressPx(computeProgressPx());
+    });
+
+    const onResize = () => setProgressPx(computeProgressPx());
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, totalHours]);
 
-  // Item dimensions - larger spacing for better alignment
-  const ITEM_WIDTH = 56; // w-14 = 56px
-  const SPACING_LARGE = 40; // gap for ≤40h milestones
-  const SPACING_SMALL = 16; // gap for >40h milestones
-
-  // Calculate exact position for progress indicator (aligned to center of items)
-  const getProgressPosition = () => {
-    let position = ITEM_WIDTH / 2; // Start at center of first item
-    
-    for (let i = 0; i < MILESTONES.length; i++) {
-      const hours = MILESTONES[i];
-      const prevHours = i > 0 ? MILESTONES[i - 1] : 0;
-      const spacing = hours <= 40 ? SPACING_LARGE : SPACING_SMALL;
-      const segmentWidth = ITEM_WIDTH + spacing;
-      
-      if (totalHours < hours) {
-        // Calculate partial position within this segment
-        const segmentProgress = (totalHours - prevHours) / (hours - prevHours);
-        return position + segmentWidth * segmentProgress - ITEM_WIDTH / 2;
-      }
-      
-      position += segmentWidth;
-    }
-    
-    return position - ITEM_WIDTH / 2;
-  };
+  // Scroll to current progress position (75% from left edge)
+  useEffect(() => {
+    if (!open || !rewardTrackRef.current) return;
+    const container = rewardTrackRef.current;
+    const scrollableWidth = container.scrollWidth - container.clientWidth;
+    const targetScroll = progressPx - container.clientWidth * 0.75;
+    container.scrollLeft = Math.max(0, Math.min(targetScroll, scrollableWidth));
+  }, [open, progressPx]);
 
   // Get spacing class for milestone
   const getSpacingClass = (hours: number) => {
-    return hours <= 40 ? 'mr-10' : 'mr-4';
+    // more space overall, but still denser after 40h
+    return hours <= 40 ? 'mr-12' : 'mr-5';
   };
 
   return (
@@ -240,14 +283,14 @@ export function WeeklyBattlePass({
               ref={rewardTrackRef}
               className="glass-card p-4 overflow-x-auto scrollbar-thin"
             >
-              <div className="relative min-w-max">
+              <div ref={trackContentRef} className="relative min-w-max">
                 {/* Progress line with dot endpoint */}
-                <div className="absolute top-1/2 left-0 h-2 bg-secondary/30 rounded-full -translate-y-1/2" style={{ width: 'calc(100% - 24px)' }}>
+                <div className="absolute top-1/2 left-0 right-0 h-2 bg-secondary/30 rounded-full -translate-y-1/2">
                   {/* Progress fill with dot end */}
                   <div
                     className="h-full bg-gradient-to-r from-primary to-primary rounded-l-full transition-none relative"
                     style={{ 
-                      width: `${getProgressPosition()}px`,
+                      width: `${Math.max(0, progressPx)}px`,
                       maxWidth: '100%',
                     }}
                   >
@@ -274,6 +317,9 @@ export function WeeklyBattlePass({
                           "flex flex-col items-center group relative",
                           getSpacingClass(hours)
                         )}
+                        ref={(el) => {
+                          milestoneRefs.current[idx] = el;
+                        }}
                       >
                         <div
                           className={cn(
