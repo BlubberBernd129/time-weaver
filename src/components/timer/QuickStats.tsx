@@ -7,14 +7,15 @@ interface QuickStatsProps {
   timeEntries: TimeEntry[];
   categories: Category[];
   subcategories: Subcategory[];
+  onTodayClick?: () => void;
 }
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const REFRESH_INTERVAL = 30 * 1000; // 30 seconds for more responsive updates
 
-export function QuickStats({ timeEntries, categories, subcategories }: QuickStatsProps) {
+export function QuickStats({ timeEntries, categories, subcategories, onTodayClick }: QuickStatsProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh every 30 seconds for live updates
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey(k => k + 1);
@@ -32,6 +33,8 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
       sublabel: todayStats.topCategory ? `Top: ${todayStats.topCategory}` : 'Keine Einträge',
       icon: Clock,
       color: 'text-primary',
+      onClick: onTodayClick,
+      clickable: true,
     },
     {
       label: 'Diese Woche',
@@ -39,6 +42,7 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
       sublabel: `${weeklyStats.byCategory.length} Kategorien`,
       icon: Calendar,
       color: 'text-accent',
+      clickable: false,
     },
     {
       label: 'Einträge heute',
@@ -46,6 +50,7 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
       sublabel: 'Zeitblöcke',
       icon: TrendingUp,
       color: 'text-success',
+      clickable: false,
     },
   ];
 
@@ -56,8 +61,11 @@ export function QuickStats({ timeEntries, categories, subcategories }: QuickStat
         return (
           <div
             key={`${index}-${refreshKey}`}
-            className="stat-card animate-fade-in p-3 lg:p-4"
+            className={`stat-card animate-fade-in p-3 lg:p-4 ${
+              stat.clickable ? 'cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all' : ''
+            }`}
             style={{ animationDelay: `${index * 100}ms` }}
+            onClick={stat.onClick}
           >
             <div className="flex items-start justify-between mb-2 lg:mb-3">
               <span className="text-[10px] lg:text-sm text-muted-foreground">{stat.label}</span>

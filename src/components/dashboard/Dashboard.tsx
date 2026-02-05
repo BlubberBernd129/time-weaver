@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { QuickStats } from '@/components/timer/QuickStats';
 import { ManualEntryDialog } from '@/components/timer/ManualEntryDialog';
 import { RecentEntries } from '@/components/timer/RecentEntries';
 import { DayTimeline } from './DayTimeline';
+import { TodayOverviewDialog } from './TodayOverviewDialog';
 import { WeeklyGoalsRings } from '@/components/goals/WeeklyGoalsRings';
 import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
-import { LayoutDashboard, Trophy } from 'lucide-react';
+import { LayoutDashboard, Trophy, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatHoursMinutes, calculateWeeklyStats } from '@/lib/timeUtils';
+import { getWeek } from 'date-fns';
 
 interface DashboardProps {
   categories: Category[];
@@ -38,6 +42,7 @@ interface DashboardProps {
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
   onOpenBattlePass?: () => void;
+  onNavigateToStatistics?: () => void;
 }
 
 export function Dashboard({
@@ -63,9 +68,16 @@ export function Dashboard({
   getCategoryById,
   getSubcategoryById,
   onOpenBattlePass,
+  onNavigateToStatistics,
 }: DashboardProps) {
+  const [showTodayOverview, setShowTodayOverview] = useState(false);
+
   // Filter to only weekly goals
   const weeklyGoals = goals.filter(g => g.type === 'weekly');
+
+  // Get weekly stats for the button
+  const weeklyStats = calculateWeeklyStats(timeEntries.filter(e => !e.isPause), categories, subcategories, new Date());
+  const currentWeek = getWeek(new Date(), { weekStartsOn: 1 });
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:h-[calc(100vh-4rem)]">
@@ -99,6 +111,17 @@ export function Dashboard({
                 Diese Woche
               </Button>
             )}
+            {onNavigateToStatistics && (
+              <Button
+                variant="outline"
+                onClick={onNavigateToStatistics}
+                className="gap-2 bg-gradient-to-r from-accent/10 to-secondary/10 border-accent/30 hover:from-accent/20 hover:to-secondary/20"
+              >
+                <Calendar className="w-4 h-4 text-accent" />
+                <span className="hidden sm:inline">KW {currentWeek}:</span>
+                <span className="font-mono">{formatHoursMinutes(weeklyStats.totalTime)}</span>
+              </Button>
+            )}
             <ManualEntryDialog
               categories={categories}
               getSubcategoriesForCategory={getSubcategoriesForCategory}
@@ -112,6 +135,7 @@ export function Dashboard({
           timeEntries={timeEntries}
           categories={categories}
           subcategories={subcategories}
+          onTodayClick={() => setShowTodayOverview(true)}
         />
 
         {/* Main Content Grid */}
@@ -154,6 +178,17 @@ export function Dashboard({
           onUpdate={onUpdateEntry}
         />
       </div>
+
+      {/* Today Overview Dialog */}
+      <TodayOverviewDialog
+        open={showTodayOverview}
+        onOpenChange={setShowTodayOverview}
+        timeEntries={timeEntries}
+        categories={categories}
+        subcategories={subcategories}
+        getCategoryById={getCategoryById}
+        getSubcategoryById={getSubcategoryById}
+      />
     </div>
   );
 }
