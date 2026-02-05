@@ -103,6 +103,7 @@ const Index = () => {
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
             onOpenBattlePass={() => setBattlePassOpen(true)}
+            onNavigateToStatistics={() => setCurrentView('statistics')}
           />
         );
       case 'entries':
