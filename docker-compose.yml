@@ -2,8 +2,13 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.3 - Battle Pass UI Improvements
+# UI OVERHAUL v3.4 - Auto-Pausen Fix
 # ============================================================================
+#
+# ÄNDERUNGEN v3.4:
+#   ✅ Auto-Pausen: Gillig + Keller Pausen (09:30-09:45, 15:00-15:15) werden
+#      direkt beim Stoppen eingefügt, wenn der Eintrag die Zeit umfasst
+#   ✅ Fix: Prüfung geändert von "pause >= start" auf "entry umfasst pause"
 #
 # ÄNDERUNGEN v3.3:
 #   ✅ Kalender: Unnötige innere Scrollbar entfernt
@@ -63,7 +68,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.3.0"
+      - "com.timetracker.version=3.4.0"
 
 networks:
   default:

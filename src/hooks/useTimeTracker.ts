@@ -107,6 +107,7 @@ function buildTimerStateFromRunningEntry(entry: TimeEntry): TimerState {
 }
 
 // Configuration for automatic pause periods per category name
+// Pausen werden direkt eingefügt wenn der Eintrag die Zeit umfasst
 const AUTO_PAUSE_CONFIG: Record<string, { start: string; end: string }[]> = {
   'Gillig + Keller': [
     { start: '09:30', end: '09:45' },
@@ -116,7 +117,8 @@ const AUTO_PAUSE_CONFIG: Record<string, { start: string; end: string }[]> = {
 
 /**
  * Generate automatic pause periods for a given category and time range.
- * Only includes pauses that fall within the entry's start/end time.
+ * Inserts pauses if the entry TIME RANGE encompasses the pause time.
+ * E.g., if entry is 08:00-17:00, pauses at 09:30-09:45 and 15:00-15:15 are added.
  */
 function generateAutoPauses(
   categoryName: string,
@@ -140,8 +142,12 @@ function generateAutoPauses(
     const pauseEnd = new Date(entryDate);
     pauseEnd.setHours(endHour, endMin, 0, 0);
 
-    // Only add if pause falls within entry time range
-    if (pauseStart >= entryStart && pauseEnd <= entryEnd) {
+    // Insert pause if entry START is before pause START AND entry END is after pause END
+    // This means the work period encompasses the pause time
+    const entryStartsBefore = entryStart.getTime() <= pauseStart.getTime();
+    const entryEndsAfter = entryEnd.getTime() >= pauseEnd.getTime();
+
+    if (entryStartsBefore && entryEndsAfter) {
       // Check if this pause already exists (avoid duplicates)
       const alreadyExists = existingPauses.some(
         (p) =>
