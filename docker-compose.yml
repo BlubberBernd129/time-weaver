@@ -6,13 +6,11 @@
 # ============================================================================
 #
 # ÄNDERUNGEN v3.5:
-#   ✅ Live-Updates: QuickStats aktualisiert sich alle 30 Sekunden
-#   ✅ Heute-Übersicht: Klick auf "Heute"-Karte öffnet Tagesübersicht mit
-#      - Gesamtzeit
-#      - Aufschlüsselung nach Kategorien
-#      - Chronologischer Zeitverlauf
-#   ✅ Diese Woche Button: Zeigt aktuelle KW und Wochenzeit, navigiert zu Statistik
-#   ✅ Verbessertes Dashboard-Layout mit mehr interaktiven Elementen
+#   ✅ Live-Updates: QuickStats aktualisiert sich alle 5 Minuten
+#   ✅ Laufende Timer: Werden in "Heute" und "Diese Woche" einbezogen
+#   ✅ Heute-Übersicht: Klick auf "Heute"-Karte öffnet Tagesübersicht
+#   ✅ Diese Woche: Klick auf "Diese Woche"-Karte öffnet Battle Pass
+#   ✅ KW-Button: Oben rechts zeigt Wochenzeit und navigiert zu Statistik
 #
 # ÄNDERUNGEN v3.4:
 #   ✅ Auto-Pausen: Gillig + Keller Pausen (09:30-09:45, 15:00-15:15) werden

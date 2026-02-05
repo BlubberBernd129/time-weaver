@@ -7,7 +7,7 @@ import { DayTimeline } from './DayTimeline';
 import { TodayOverviewDialog } from './TodayOverviewDialog';
 import { WeeklyGoalsRings } from '@/components/goals/WeeklyGoalsRings';
 import { Category, Subcategory, TimeEntry, TimerState, Goal, PausePeriod } from '@/types/timetracker';
-import { LayoutDashboard, Trophy, Calendar } from 'lucide-react';
+import { LayoutDashboard, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatHoursMinutes, calculateWeeklyStats } from '@/lib/timeUtils';
 import { getWeek } from 'date-fns';
@@ -101,16 +101,6 @@ export function Dashboard({
             <h1 className="text-xl lg:text-2xl font-bold">Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">
-            {onOpenBattlePass && (
-              <Button
-                variant="outline"
-                onClick={onOpenBattlePass}
-                className="gap-2 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30 hover:from-primary/20 hover:to-secondary/20"
-              >
-                <Trophy className="w-4 h-4 text-primary" />
-                Diese Woche
-              </Button>
-            )}
             {onNavigateToStatistics && (
               <Button
                 variant="outline"
@@ -135,7 +125,9 @@ export function Dashboard({
           timeEntries={timeEntries}
           categories={categories}
           subcategories={subcategories}
+          timerState={timerState}
           onTodayClick={() => setShowTodayOverview(true)}
+          onWeekClick={onOpenBattlePass}
         />
 
         {/* Main Content Grid */}
