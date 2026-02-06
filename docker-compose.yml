@@ -2,17 +2,17 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.5 - Dashboard Live-Updates & Tagesübersicht
+# UI OVERHAUL v3.6 - Performance-Optimierungen
 # ============================================================================
 #
-# ÄNDERUNGEN v3.5:
-#   ✅ Live-Updates: QuickStats aktualisiert sich alle 5 Minuten
-#   ✅ Laufende Timer: Werden in "Heute" und "Diese Woche" einbezogen
-#   ✅ Heute-Übersicht: Klick auf "Heute"-Karte öffnet Tagesübersicht
-#   ✅ Diese Woche: Klick auf "Diese Woche"-Karte öffnet Battle Pass
-#   ✅ KW-Button: Oben rechts zeigt Wochenzeit und navigiert zu Statistik
+# ÄNDERUNGEN v3.6:
+#   ✅ Performance: QuickStats mit useMemo optimiert (weniger Re-Renders)
+#   ✅ Performance: Intervall nur bei laufendem Timer aktiv (1 Min statt immer)
+#   ✅ Performance: DayTimeline Update von 1s auf 10s reduziert
+#   ✅ Performance: Stabile Keys statt refreshKey für React-Komponenten
+#   ✅ Live-Updates: Zeiten aktualisieren sich während Timer läuft
 #
-# ÄNDERUNGEN v3.4:
+# ÄNDERUNGEN v3.5:
 #   ✅ Auto-Pausen: Gillig + Keller Pausen (09:30-09:45, 15:00-15:15) werden
 #      direkt beim Stoppen eingefügt, wenn der Eintrag die Zeit umfasst
 #   ✅ Fix: Prüfung geändert von "pause >= start" auf "entry umfasst pause"
@@ -75,7 +75,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.5.0"
+      - "com.timetracker.version=3.6.0"
 
 networks:
   default:

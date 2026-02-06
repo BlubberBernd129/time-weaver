@@ -42,16 +42,16 @@ export function DayTimeline({
   const today = new Date();
   const lastTimeRef = useRef<string>('');
 
-  // Update current time every second
+  // Update current time every 10 seconds (reduced from 1s for performance)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
-      const timeStr = format(now, 'HH:mm:ss');
+      const timeStr = format(now, 'HH:mm');
       if (timeStr !== lastTimeRef.current) {
         lastTimeRef.current = timeStr;
         setCurrentTime(now);
       }
-    }, 1000);
+    }, 10000); // 10 seconds instead of 1 second
     return () => clearInterval(interval);
   }, []);
 
