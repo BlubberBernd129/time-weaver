@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { Clock, Calendar, TrendingUp } from 'lucide-react';
 import { Category, Subcategory, TimeEntry, TimerState } from '@/types/timetracker';
 import { formatHoursMinutes, getEntriesForDay, getEntriesForWeek } from '@/lib/timeUtils';
@@ -12,8 +12,8 @@ interface QuickStatsProps {
   onWeekClick?: () => void;
 }
 
-const REFRESH_INTERVAL = 60 * 1000; // 1 minute for live timer updates
-
+// Stats update when timerState changes (parent re-renders on timer tick)
+// No internal interval needed - prevents unnecessary CPU usage
 export function QuickStats({ 
   timeEntries, 
   categories, 
@@ -22,23 +22,14 @@ export function QuickStats({
   onTodayClick,
   onWeekClick,
 }: QuickStatsProps) {
-  const [now, setNow] = useState(() => Date.now());
-
-  // Update every minute for running timer display
-  useEffect(() => {
-    if (!timerState?.isRunning) return;
-    
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [timerState?.isRunning]);
-
-  // Calculate running timer duration - memoized
+  // Calculate running timer duration from timerState prop
+  // This updates when parent component passes new timerState
   const runningDuration = useMemo(() => {
     if (!timerState?.isRunning || !timerState.startTime) return 0;
     
+    const now = Date.now();
     let pausedTime = 0;
+    
     if (timerState.pausePeriods) {
       timerState.pausePeriods.forEach(pause => {
         if (pause.startTime && pause.endTime) {
@@ -53,7 +44,7 @@ export function QuickStats({
     
     const elapsed = (now - new Date(timerState.startTime).getTime()) / 1000;
     return Math.max(0, elapsed - pausedTime);
-  }, [timerState, now]);
+  }, [timerState]);
 
   // Filter active entries (no pauses) - memoized
   const activeEntries = useMemo(() => 

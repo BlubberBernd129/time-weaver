@@ -2,14 +2,14 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.6 - Performance-Optimierungen
+# UI OVERHAUL v3.6.1 - Timer Performance Fix
 # ============================================================================
 #
-# ÄNDERUNGEN v3.6:
-#   ✅ Performance: QuickStats mit useMemo optimiert (weniger Re-Renders)
-#   ✅ Performance: Intervall nur bei laufendem Timer aktiv (1 Min statt immer)
+# ÄNDERUNGEN v3.6.1:
+#   ✅ Fix: Timer-Sekunden laufen weiterhin in Echtzeit (1s Intervall bleibt)
+#   ✅ Performance: QuickStats berechnet nur bei timerState-Änderungen neu
+#   ✅ Performance: Kein eigenes Intervall mehr in QuickStats (nutzt Props)
 #   ✅ Performance: DayTimeline Update von 1s auf 10s reduziert
-#   ✅ Performance: Stabile Keys statt refreshKey für React-Komponenten
 #   ✅ Live-Updates: Zeiten aktualisieren sich während Timer läuft
 #
 # ÄNDERUNGEN v3.5:
@@ -75,7 +75,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.6.0"
+      - "com.timetracker.version=3.6.1"
 
 networks:
   default:
