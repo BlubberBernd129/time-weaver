@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, List, FolderTree, Calendar, BarChart3, LogOut, Package, CalendarDays } from 'lucide-react';
+import { Clock, LayoutDashboard, List, FolderTree, Calendar, BarChart3, LogOut, Package, CalendarDays, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/timetracker';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ const navItems: { id: ViewMode; label: string; icon: React.ElementType }[] = [
   { id: 'categories', label: 'Kategorien', icon: FolderTree },
   { id: 'calendar', label: 'Kalender', icon: Calendar },
   { id: 'statistics', label: 'Statistik', icon: BarChart3 },
+  { id: 'timeoverview', label: 'Zeitübersicht', icon: Timer },
   { id: 'collection', label: 'Sammlung', icon: Package },
   { id: 'recap', label: 'Wochenrückblick', icon: CalendarDays },
 ];

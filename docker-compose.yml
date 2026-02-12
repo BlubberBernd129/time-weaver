@@ -2,15 +2,14 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.6.1 - Timer Performance Fix
+# UI OVERHAUL v3.7 - Zeitübersicht Tab
 # ============================================================================
 #
-# ÄNDERUNGEN v3.6.1:
-#   ✅ Fix: Timer-Sekunden laufen weiterhin in Echtzeit (1s Intervall bleibt)
-#   ✅ Performance: QuickStats berechnet nur bei timerState-Änderungen neu
-#   ✅ Performance: Kein eigenes Intervall mehr in QuickStats (nutzt Props)
-#   ✅ Performance: DayTimeline Update von 1s auf 10s reduziert
-#   ✅ Live-Updates: Zeiten aktualisieren sich während Timer läuft
+# ÄNDERUNGEN v3.7:
+#   ✅ Neuer Tab "Zeitübersicht": Gesamtzeit pro Kategorie & Unterkategorie
+#   ✅ Aufklappbare Kategorien mit Fortschrittsbalken
+#   ✅ Prozentuale Verteilung der Zeit sichtbar
+#   ✅ Navigation in Sidebar und Mobile ergänzt
 #
 # ÄNDERUNGEN v3.5:
 #   ✅ Auto-Pausen: Gillig + Keller Pausen (09:30-09:45, 15:00-15:15) werden
@@ -75,7 +74,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.6.1"
+      - "com.timetracker.version=3.7.0"
 
 networks:
   default:
