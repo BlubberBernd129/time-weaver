@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight, FolderTree } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, FolderTree, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,6 +63,12 @@ export function CategoryManager({
   const [addSubcategoryOpen, setAddSubcategoryOpen] = useState<string | null>(null);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   
+  // Rename state
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [editingSubcategory, setEditingSubcategory] = useState<string | null>(null);
+  const [editingSubcategoryName, setEditingSubcategoryName] = useState('');
+
   // Delete confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'category' | 'subcategory'; id: string; name: string } | null>(null);
@@ -97,6 +103,30 @@ export function CategoryManager({
   const confirmDelete = (type: 'category' | 'subcategory', id: string, name: string) => {
     setItemToDelete({ type, id, name });
     setDeleteConfirmOpen(true);
+  };
+
+  const startEditCategory = (cat: Category) => {
+    setEditingCategory(cat.id);
+    setEditingCategoryName(cat.name);
+  };
+
+  const saveEditCategory = (id: string) => {
+    if (editingCategoryName.trim()) {
+      onUpdateCategory(id, { name: editingCategoryName.trim() });
+    }
+    setEditingCategory(null);
+  };
+
+  const startEditSubcategory = (sub: Subcategory) => {
+    setEditingSubcategory(sub.id);
+    setEditingSubcategoryName(sub.name);
+  };
+
+  const saveEditSubcategory = (id: string) => {
+    if (editingSubcategoryName.trim()) {
+      onUpdateSubcategory(id, { name: editingSubcategoryName.trim() });
+    }
+    setEditingSubcategory(null);
   };
 
   const handleConfirmDelete = () => {
@@ -224,12 +254,48 @@ export function CategoryManager({
                         className="w-4 h-4 rounded-md"
                         style={{ backgroundColor: category.color }}
                       />
-                      <span className="font-medium">{category.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({subs.length} Unterkategorien)
-                      </span>
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            className="bg-secondary border-border text-sm h-8 w-40"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEditCategory(category.id);
+                              if (e.key === 'Escape') setEditingCategory(null);
+                            }}
+                          />
+                          <Button variant="ghost" size="iconSm" onClick={() => saveEditCategory(category.id)} className="text-primary">
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="iconSm" onClick={() => setEditingCategory(null)} className="text-muted-foreground">
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="font-medium">{category.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            ({subs.length} Unterkategorien)
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {editingCategory !== category.id && (
+                        <Button
+                          variant="ghost"
+                          size="iconSm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditCategory(category);
+                          }}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="iconSm"
@@ -257,15 +323,48 @@ export function CategoryManager({
                         key={sub.id}
                         className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors"
                       >
-                        <span className="text-sm">{sub.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="iconSm"
-                          onClick={() => confirmDelete('subcategory', sub.id, sub.name)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        {editingSubcategory === sub.id ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Input
+                              value={editingSubcategoryName}
+                              onChange={(e) => setEditingSubcategoryName(e.target.value)}
+                              className="bg-secondary border-border text-sm h-8 flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEditSubcategory(sub.id);
+                                if (e.key === 'Escape') setEditingSubcategory(null);
+                              }}
+                            />
+                            <Button variant="ghost" size="iconSm" onClick={() => saveEditSubcategory(sub.id)} className="text-primary">
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button variant="ghost" size="iconSm" onClick={() => setEditingSubcategory(null)} className="text-muted-foreground">
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm">{sub.name}</span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="iconSm"
+                                onClick={() => startEditSubcategory(sub)}
+                                className="text-muted-foreground hover:text-primary"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="iconSm"
+                                onClick={() => confirmDelete('subcategory', sub.id, sub.name)}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
 
