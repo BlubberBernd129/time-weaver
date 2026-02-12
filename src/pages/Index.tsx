@@ -8,6 +8,7 @@ import { CalendarView } from '@/components/calendar/CalendarView';
 import { StatisticsView } from '@/components/statistics/StatisticsView';
 import { CollectionTab } from '@/components/gamification/CollectionTab';
 import { WeeklyRecap } from '@/components/gamification/WeeklyRecap';
+import { TimeOverviewTab } from '@/components/timeoverview/TimeOverviewTab';
 import { WeeklyBattlePass } from '@/components/gamification/WeeklyBattlePass';
 import { PasswordGate } from '@/components/auth/PasswordGate';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
@@ -166,6 +167,16 @@ const Index = () => {
           <WeeklyRecap
             timeEntries={timeEntries}
             categories={categories}
+          />
+        );
+      case 'timeoverview':
+        return (
+          <TimeOverviewTab
+            timeEntries={timeEntries}
+            categories={categories}
+            subcategories={subcategories}
+            getCategoryById={getCategoryById}
+            getSubcategoryById={getSubcategoryById}
           />
         );
       default:
