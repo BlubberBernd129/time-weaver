@@ -177,6 +177,7 @@ const Index = () => {
             subcategories={subcategories}
             getCategoryById={getCategoryById}
             getSubcategoryById={getSubcategoryById}
+            onUpdateEntry={updateTimeEntry}
           />
         );
       default:
