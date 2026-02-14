@@ -2,14 +2,17 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.8 - Kategorien umbenennen
+# UI OVERHAUL v3.9 - Zeitübersicht + Beschreibungs-Dialog
 # ============================================================================
 #
+# ÄNDERUNGEN v3.9:
+#   ✅ Timer-Stopp: Dialog fragt "Was hast du gemacht?" (Beschreibung)
+#   ✅ Zeitübersicht: Kategorien anklickbar → zeigt alle Einträge
+#   ✅ Zeitübersicht: Zeitraum-Filter (Woche/Monat/Gesamt)
+#   ✅ Zeitübersicht: CSV + PDF Export mit Zeitraum-Auswahl
+#   ✅ Beschreibungen erscheinen in Auflistung und Exports
+#
 # ÄNDERUNGEN v3.8:
-#   ✅ Kategorien können inline umbenannt werden (Stift-Icon)
-#   ✅ Unterkategorien können inline umbenannt werden
-#   ✅ Enter zum Speichern, Escape zum Abbrechen
-#   ✅ Änderungen werden mit PocketBase synchronisiert
 #
 # ÄNDERUNGEN v3.5:
 #   ✅ Auto-Pausen: Gillig + Keller Pausen (09:30-09:45, 15:00-15:15) werden
@@ -74,7 +77,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.8.0"
+      - "com.timetracker.version=3.9.0"
 
 networks:
   default:

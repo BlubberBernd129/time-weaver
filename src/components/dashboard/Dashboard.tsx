@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { QuickStats } from '@/components/timer/QuickStats';
 import { ManualEntryDialog } from '@/components/timer/ManualEntryDialog';
 import { RecentEntries } from '@/components/timer/RecentEntries';
+import { StopTimerDescriptionDialog } from '@/components/timer/StopTimerDescriptionDialog';
 import { DayTimeline } from './DayTimeline';
 import { TodayOverviewDialog } from './TodayOverviewDialog';
 import { WeeklyGoalsRings } from '@/components/goals/WeeklyGoalsRings';
@@ -71,6 +72,37 @@ export function Dashboard({
   onNavigateToStatistics,
 }: DashboardProps) {
   const [showTodayOverview, setShowTodayOverview] = useState(false);
+  const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
+  const [pendingStopCategoryName, setPendingStopCategoryName] = useState('');
+  const [pendingStopSubcategoryName, setPendingStopSubcategoryName] = useState('');
+
+  const handleStopTimer = useCallback(() => {
+    // Capture category/subcategory names before stopping
+    const catName = categories.find(c => c.id === timerState?.categoryId)?.name || '';
+    const subName = subcategories.find(s => s.id === timerState?.subcategoryId)?.name || '';
+    setPendingStopCategoryName(catName);
+    setPendingStopSubcategoryName(subName);
+    setShowDescriptionDialog(true);
+  }, [timerState, categories, subcategories]);
+
+  const handleDescriptionConfirm = useCallback((description: string) => {
+    // Capture running entry ID before stopping
+    const runningEntryId = timerState?.runningEntryId;
+    // Find the local entry that's still running
+    const runningEntry = timeEntries.find(e => e.isRunning && !e.endTime);
+    
+    onStopTimer();
+    
+    // After stop, update the entry with description
+    const entryId = runningEntryId || runningEntry?.id;
+    if (entryId && description) {
+      // Small delay to ensure stop has processed
+      setTimeout(() => {
+        onUpdateEntry(entryId, { description });
+      }, 500);
+    }
+    setShowDescriptionDialog(false);
+  }, [onStopTimer, onUpdateEntry, timerState, timeEntries]);
 
   // Filter to only weekly goals
   const weeklyGoals = goals.filter(g => g.type === 'weekly');
@@ -138,7 +170,7 @@ export function Dashboard({
             subcategories={subcategories}
             timerState={timerState}
             onStart={onStartTimer}
-            onStop={onStopTimer}
+            onStop={handleStopTimer}
             onPause={onPauseTimer}
             onResume={onResumeTimer}
             onUpdateStartTime={onUpdateTimerStartTime}
@@ -180,6 +212,14 @@ export function Dashboard({
         subcategories={subcategories}
         getCategoryById={getCategoryById}
         getSubcategoryById={getSubcategoryById}
+      />
+
+      {/* Stop Timer Description Dialog */}
+      <StopTimerDescriptionDialog
+        open={showDescriptionDialog}
+        onConfirm={handleDescriptionConfirm}
+        categoryName={pendingStopCategoryName}
+        subcategoryName={pendingStopSubcategoryName}
       />
     </div>
   );
