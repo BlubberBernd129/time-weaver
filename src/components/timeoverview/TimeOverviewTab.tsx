@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Timer, ChevronDown, ChevronRight, ArrowLeft, Download, FileText, Table, Calendar } from 'lucide-react';
+import { Timer, ChevronDown, ChevronRight, ArrowLeft, Download, FileText, Table, Calendar, Pencil } from 'lucide-react';
 import { Category, Subcategory, TimeEntry } from '@/types/timetracker';
 import { formatHoursMinutes, formatDuration } from '@/lib/timeUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { EditEntryDialog } from '@/components/timer/EditEntryDialog';
 
 interface TimeOverviewTabProps {
   timeEntries: TimeEntry[];
@@ -16,6 +17,7 @@ interface TimeOverviewTabProps {
   subcategories: Subcategory[];
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoryById: (id: string) => Subcategory | undefined;
+  onUpdateEntry: (id: string, updates: Partial<TimeEntry>) => void;
 }
 
 type TimePeriod = 'week' | 'lastWeek' | 'month' | 'lastMonth' | 'all';
@@ -33,6 +35,7 @@ export function TimeOverviewTab({
   subcategories,
   getCategoryById,
   getSubcategoryById,
+  onUpdateEntry,
 }: TimeOverviewTabProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -172,21 +175,52 @@ export function TimeOverviewTab({
     const catTotals = new Map<string, number>();
     entries.forEach(e => catTotals.set(e.categoryId, (catTotals.get(e.categoryId) || 0) + e.duration));
 
+    // Determine if we're viewing a specific category/subcategory
+    const viewingCategory = selectedCategory ? getCategoryById(selectedCategory) : null;
+    const viewingSub = selectedSubcategory ? getSubcategoryById(selectedSubcategory) : null;
+    const isFilteredView = !!selectedCategory;
+
+    const titleText = isFilteredView
+      ? `${viewingCategory?.name || 'Kategorie'}${viewingSub ? ' → ' + viewingSub.name : ''}`
+      : 'Zeitübersicht';
+
+    // When viewing a category, show "Unterkategorie" column only; otherwise show both
+    const tableHeaders = isFilteredView
+      ? `<th>Datum</th><th>Zeit</th><th>Dauer</th><th>Unterkategorie</th><th>Beschreibung</th>`
+      : `<th>Datum</th><th>Zeit</th><th>Dauer</th><th>Kategorie</th><th>Unterkategorie</th><th>Beschreibung</th>`;
+
+    const tableRows = entries.map(e => {
+      const timeCell = `${format(new Date(e.startTime), 'HH:mm')}–${e.endTime ? format(new Date(e.endTime), 'HH:mm') : '…'}`;
+      const catCell = isFilteredView ? '' : `<td>${getCategoryById(e.categoryId)?.name || '-'}</td>`;
+      return `<tr>
+        <td>${format(new Date(e.startTime), 'dd.MM.yyyy', { locale: de })}</td>
+        <td>${timeCell}</td>
+        <td>${formatDuration(e.duration)}</td>
+        ${catCell}
+        <td>${getSubcategoryById(e.subcategoryId)?.name || '-'}</td>
+        <td class="desc">${e.description || ''}</td>
+      </tr>`;
+    }).join('');
+
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Zeitübersicht</title>
       <style>
-        body { font-family: system-ui, sans-serif; padding: 20px; color: #333; }
-        h1 { color: #14b8a6; border-bottom: 2px solid #14b8a6; padding-bottom: 10px; }
-        h2 { color: #666; margin-top: 30px; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 13px; }
-        th { background: #f5f5f5; font-weight: 600; }
-        .summary { background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .summary-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #d1fae5; }
+        body { font-family: system-ui, sans-serif; padding: 20px; color: #333; font-size: 13px; }
+        h1 { color: #14b8a6; border-bottom: 2px solid #14b8a6; padding-bottom: 10px; font-size: 20px; }
+        h2 { color: #666; margin-top: 24px; font-size: 15px; }
+        h3 { color: #888; font-size: 13px; font-weight: normal; margin-top: -8px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th { padding: 6px 8px; text-align: left; border-bottom: 2px solid #999; font-weight: 600; font-size: 12px; }
+        td { padding: 5px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 12px; }
+        .summary { background: #f0fdf4; padding: 16px; border-radius: 8px; margin: 16px 0; }
+        .summary-item { display: flex; justify-content: space-between; padding: 4px 0; }
+        .summary-item + .summary-item { border-top: 1px solid #d1fae5; padding-top: 4px; }
         .summary-total { font-weight: bold; font-size: 1.1em; color: #14b8a6; }
-        .desc { color: #666; font-style: italic; max-width: 300px; }
+        .desc { color: #666; font-style: italic; }
+        @media print { body { padding: 10px; } }
       </style></head><body>
-      <h1>Zeitübersicht – ${periodLabel(period)}</h1>
-      <p>Erstellt am: ${format(new Date(), 'dd.MM.yyyy HH:mm', { locale: de })}</p>
+      <h1>${titleText} – ${periodLabel(period)}</h1>
+      ${isFilteredView && viewingSub ? `<h3>Kategorie: ${viewingCategory?.name}</h3>` : ''}
+      <p style="color:#888;font-size:11px;">Erstellt am: ${format(new Date(), 'dd.MM.yyyy HH:mm', { locale: de })}</p>
       <div class="summary">
         <div class="summary-item summary-total"><span>Gesamtzeit:</span><span>${formatHoursMinutes(total)}</span></div>
         <div class="summary-item"><span>Einträge:</span><span>${entries.length}</span></div>
@@ -196,16 +230,8 @@ export function TimeOverviewTab({
         }).join('')}
       </div>
       <h2>Einträge (${entries.length})</h2>
-      <table><thead><tr><th>Datum</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Kategorie</th><th>Unterkategorie</th><th>Beschreibung</th></tr></thead>
-      <tbody>${entries.map(e => `<tr>
-        <td>${format(new Date(e.startTime), 'dd.MM.yyyy', { locale: de })}</td>
-        <td>${format(new Date(e.startTime), 'HH:mm')}</td>
-        <td>${e.endTime ? format(new Date(e.endTime), 'HH:mm') : '-'}</td>
-        <td>${formatDuration(e.duration)}</td>
-        <td>${getCategoryById(e.categoryId)?.name || '-'}</td>
-        <td>${getSubcategoryById(e.subcategoryId)?.name || '-'}</td>
-        <td class="desc">${e.description || ''}</td>
-      </tr>`).join('')}</tbody></table></body></html>`;
+      <table><thead><tr>${tableHeaders}</tr></thead>
+      <tbody>${tableRows}</tbody></table></body></html>`;
 
     const win = window.open('', '_blank');
     if (win) { win.document.write(htmlContent); win.document.close(); win.print(); }
@@ -279,7 +305,10 @@ export function TimeOverviewTab({
                       )}
                     </div>
                   </div>
-                  <span className="font-mono text-sm font-semibold whitespace-nowrap">{formatDuration(entry.duration)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm font-semibold whitespace-nowrap">{formatDuration(entry.duration)}</span>
+                    <EditEntryDialog entry={entry} onUpdate={onUpdateEntry} />
+                  </div>
                 </div>
               </CardContent>
             </Card>

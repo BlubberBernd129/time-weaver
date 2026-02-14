@@ -2,8 +2,14 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.9 - Zeitübersicht + Beschreibungs-Dialog
+# UI OVERHAUL v3.10 - Einträge bearbeiten + PDF-Verbesserungen
 # ============================================================================
+#
+# ÄNDERUNGEN v3.10:
+#   ✅ Zeitübersicht: Einträge per Klick bearbeiten (EditEntryDialog)
+#   ✅ PDF-Export: Saubere Tabellenlinien, kompakteres Layout
+#   ✅ PDF-Export: Bei Kategorie-Ansicht nur Unterkategorie-Spalte
+#   ✅ PDF-Export: Kategorie-Name als Überschrift bei gefilterter Ansicht
 #
 # ÄNDERUNGEN v3.9:
 #   ✅ Timer-Stopp: Dialog fragt "Was hast du gemacht?" (Beschreibung)
@@ -77,7 +83,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.9.0"
+      - "com.timetracker.version=3.10.0"
 
 networks:
   default:
