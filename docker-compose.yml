@@ -2,16 +2,15 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.10 - Einträge bearbeiten + PDF-Verbesserungen
+# UI OVERHAUL v3.11 - Kalender Tagesinfo + Statistik-Fix
 # ============================================================================
 #
-# ÄNDERUNGEN v3.10:
-#   ✅ Zeitübersicht: Einträge per Klick bearbeiten (EditEntryDialog)
-#   ✅ PDF-Export: Saubere Tabellenlinien, kompakteres Layout
-#   ✅ PDF-Export: Bei Kategorie-Ansicht nur Unterkategorie-Spalte
-#   ✅ PDF-Export: Kategorie-Name als Überschrift bei gefilterter Ansicht
+# ÄNDERUNGEN v3.11:
+#   ✅ Kalender: Einträge klicken zeigt große Info-Ansicht (nicht direkt bearbeiten)
+#   ✅ Kalender: Tag-Header klicken (Woche/Monat) zeigt Tages-Übersicht
+#   ✅ Statistik: 8-Wochen-Graph zeigt alle Kategorien (nicht nur Top 5)
 #
-# ÄNDERUNGEN v3.9:
+# ÄNDERUNGEN v3.10:
 #   ✅ Timer-Stopp: Dialog fragt "Was hast du gemacht?" (Beschreibung)
 #   ✅ Zeitübersicht: Kategorien anklickbar → zeigt alle Einträge
 #   ✅ Zeitübersicht: Zeitraum-Filter (Woche/Monat/Gesamt)
@@ -83,7 +82,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.10.0"
+      - "com.timetracker.version=3.11.0"
 
 networks:
   default:

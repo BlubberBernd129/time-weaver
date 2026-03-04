@@ -55,7 +55,7 @@ export function WeeklyAreaChart({ timeEntries, categories, currentDate }: Weekly
   // Get active categories (those with any time in the period)
   const activeCategories = categories.filter(cat => 
     chartData.some(week => (week[cat.id] as number) > 0)
-  ).slice(0, 5);
+  );
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
