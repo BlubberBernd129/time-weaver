@@ -16,6 +16,7 @@ import { formatTime, formatDuration, formatMonthYear, getWeekDays, formatWeekday
 import { cn } from '@/lib/utils';
 import { DraggableEntryCreator, DragHandle } from './DraggableEntryCreator';
 import { EntryDetailDialog } from './EntryDetailDialog';
+import { DayOverviewDialog } from './DayOverviewDialog';
 
 // 24-hour grid constants (0:00 - 24:00)
 const START_HOUR = 0;
@@ -57,6 +58,8 @@ export function CalendarView({
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [dayOverviewOpen, setDayOverviewOpen] = useState(false);
 
   const handlePrevious = () => {
     if (viewMode === 'week') {
@@ -167,6 +170,10 @@ export function CalendarView({
               setSelectedEntry(entry);
               setDetailDialogOpen(true);
             }}
+            onDayClick={(day) => {
+              setSelectedDay(day);
+              setDayOverviewOpen(true);
+            }}
           />
         ) : (
           <MonthView
@@ -181,6 +188,10 @@ export function CalendarView({
             onEntryClick={(entry) => {
               setSelectedEntry(entry);
               setDetailDialogOpen(true);
+            }}
+            onDayClick={(day) => {
+              setSelectedDay(day);
+              setDayOverviewOpen(true);
             }}
           />
         )}
@@ -199,6 +210,18 @@ export function CalendarView({
         }}
         onDelete={onDeleteEntry}
       />
+      {/* Day Overview Dialog */}
+      {selectedDay && (
+        <DayOverviewDialog
+          open={dayOverviewOpen}
+          onOpenChange={setDayOverviewOpen}
+          date={selectedDay}
+          timeEntries={timeEntries}
+          categories={categories}
+          getCategoryById={getCategoryById}
+          getSubcategoryById={getSubcategoryById}
+        />
+      )}
     </div>
   );
 }
@@ -218,6 +241,7 @@ interface TimeScaledWeekViewProps {
     description?: string
   ) => void;
   onEntryClick: (entry: TimeEntry) => void;
+  onDayClick: (day: Date) => void;
 }
 
 function TimeScaledWeekView({ 
@@ -229,6 +253,7 @@ function TimeScaledWeekView({
   getSubcategoriesForCategory,
   onAddEntry,
   onEntryClick,
+  onDayClick,
 }: TimeScaledWeekViewProps) {
   const today = new Date();
 
@@ -297,9 +322,10 @@ function TimeScaledWeekView({
             <div 
               key={day.toISOString()} 
               className={cn(
-                "text-center py-2 rounded-lg",
+                "text-center py-2 rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors",
                 isToday && "bg-primary/20"
               )}
+              onClick={() => onDayClick(day)}
             >
               <div className="text-[10px] lg:text-xs text-muted-foreground uppercase">
                 {formatWeekdayShort(day)}
@@ -433,6 +459,7 @@ interface MonthViewProps {
     description?: string
   ) => void;
   onEntryClick: (entry: TimeEntry) => void;
+  onDayClick: (day: Date) => void;
 }
 
 function MonthView({ 
@@ -445,6 +472,7 @@ function MonthView({
   getSubcategoriesForCategory,
   onAddEntry,
   onEntryClick,
+  onDayClick,
 }: MonthViewProps) {
   const today = new Date();
   const weekDayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -484,10 +512,16 @@ function MonthView({
                   "hover:bg-secondary/30"
                 )}
               >
-                <div className={cn(
-                  "text-xs lg:text-sm font-medium mb-1 lg:mb-2",
-                  isToday && "text-primary"
-                )}>
+                <div 
+                  className={cn(
+                    "text-xs lg:text-sm font-medium mb-1 lg:mb-2 cursor-pointer hover:underline inline-block",
+                    isToday && "text-primary"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDayClick(day);
+                  }}
+                >
                   {format(day, 'd')}
                 </div>
 
