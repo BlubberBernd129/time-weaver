@@ -2,13 +2,13 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.11 - Kalender Tagesinfo + Statistik-Fix
+# UI OVERHAUL v3.12 - Subcategory Move + Timeline Fix
 # ============================================================================
 #
-# ÄNDERUNGEN v3.11:
-#   ✅ Kalender: Einträge klicken zeigt große Info-Ansicht (nicht direkt bearbeiten)
-#   ✅ Kalender: Tag-Header klicken (Woche/Monat) zeigt Tages-Übersicht
-#   ✅ Statistik: 8-Wochen-Graph zeigt alle Kategorien (nicht nur Top 5)
+# ÄNDERUNGEN v3.12:
+#   ✅ Unterkategorien können in andere Kategorien verschoben werden (inkl. Einträge)
+#   ✅ Fix: Tagesleiste aktualisiert sich sofort nach Beschreibungs-Speicherung
+#   ✅ Beschreibung wird direkt beim Stoppen gespeichert (kein setTimeout mehr)
 #
 # ÄNDERUNGEN v3.10:
 #   ✅ Timer-Stopp: Dialog fragt "Was hast du gemacht?" (Beschreibung)
@@ -82,7 +82,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.11.0"
+      - "com.timetracker.version=3.12.0"
 
 networks:
   default:
