@@ -2,8 +2,12 @@
 # Self-Hosted Zeit-Tracking Anwendung
 #
 # ============================================================================
-# UI OVERHAUL v3.12 - Subcategory Move + Timeline Fix
+# UI OVERHAUL v3.13 - Fullwidth Layout + Scrollbar Fix
 # ============================================================================
+#
+# ÄNDERUNGEN v3.13:
+#   ✅ Desktop: Content nutzt volle Breite (kein max-w-6xl mehr)
+#   ✅ Scrollbar: Globale dunkle Scrollbar passend zum Theme
 #
 # ÄNDERUNGEN v3.12:
 #   ✅ Unterkategorien können in andere Kategorien verschoben werden (inkl. Einträge)
@@ -82,7 +86,7 @@ services:
       start_period: 10s
     labels:
       - "com.timetracker.description=Zeit-Tracking Anwendung"
-      - "com.timetracker.version=3.12.0"
+      - "com.timetracker.version=3.13.0"
 
 networks:
   default:

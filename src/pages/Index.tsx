@@ -198,10 +198,8 @@ const Index = () => {
         <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />
         
         {/* Main Content */}
-        <main className="lg:ml-64 pt-16 pb-20 lg:pt-0 lg:pb-0 p-4 lg:p-8">
-          <div className="max-w-6xl mx-auto">
-            {renderView()}
-          </div>
+        <main className="lg:ml-64 pt-16 pb-20 lg:pt-0 lg:pb-0 p-4 lg:p-8 min-h-screen">
+          {renderView()}
         </main>
 
         {/* Battle Pass Dialog */}

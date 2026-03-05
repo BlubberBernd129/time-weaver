@@ -159,24 +159,37 @@
     }
   }
 
-  /* Custom Scrollbar */
-  .scrollbar-thin {
+  /* Global Scrollbar */
+  * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(174 72% 46% / 0.4) hsl(220 16% 16% / 0.5);
+    scrollbar-color: hsl(220 14% 25%) hsl(220 16% 10%);
   }
 
-  .scrollbar-thin::-webkit-scrollbar {
+  *::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: hsl(220 16% 16% / 0.5);
+  *::-webkit-scrollbar-track {
+    background: hsl(220 16% 10%);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(220 14% 25%);
     border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(220 14% 35%);
+  }
+
+  /* Custom Scrollbar - accent variant */
+  .scrollbar-thin {
+    scrollbar-color: hsl(174 72% 46% / 0.4) hsl(220 16% 10%);
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(174 72% 46% / 0.4);
-    border-radius: 9999px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
