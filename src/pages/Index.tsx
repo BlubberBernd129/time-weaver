@@ -34,6 +34,7 @@ const Index = () => {
     addSubcategory,
     updateSubcategory,
     deleteSubcategory,
+    moveSubcategory,
     startTimer,
     stopTimer,
     pauseTimer,
@@ -131,6 +132,7 @@ const Index = () => {
             onAddSubcategory={addSubcategory}
             onUpdateSubcategory={updateSubcategory}
             onDeleteSubcategory={deleteSubcategory}
+            onMoveSubcategory={moveSubcategory}
           />
         );
       case 'calendar':

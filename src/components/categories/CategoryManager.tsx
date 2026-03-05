@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight, FolderTree, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, FolderTree, Pencil, Check, X, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +50,7 @@ interface CategoryManagerProps {
   onAddSubcategory: (categoryId: string, name: string) => void;
   onUpdateSubcategory: (id: string, updates: Partial<Subcategory>) => void;
   onDeleteSubcategory: (id: string) => void;
+  onMoveSubcategory: (subcategoryId: string, newCategoryId: string) => void;
 }
 
 export function CategoryManager({
@@ -55,6 +63,7 @@ export function CategoryManager({
   onAddSubcategory,
   onUpdateSubcategory,
   onDeleteSubcategory,
+  onMoveSubcategory,
 }: CategoryManagerProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -72,6 +81,26 @@ export function CategoryManager({
   // Delete confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'category' | 'subcategory'; id: string; name: string } | null>(null);
+
+  // Move subcategory state
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [subcategoryToMove, setSubcategoryToMove] = useState<{ id: string; name: string; currentCategoryId: string } | null>(null);
+  const [moveTargetCategoryId, setMoveTargetCategoryId] = useState<string>('');
+
+  const handleMoveSubcategory = () => {
+    if (subcategoryToMove && moveTargetCategoryId) {
+      onMoveSubcategory(subcategoryToMove.id, moveTargetCategoryId);
+      setMoveDialogOpen(false);
+      setSubcategoryToMove(null);
+      setMoveTargetCategoryId('');
+    }
+  };
+
+  const openMoveDialog = (sub: Subcategory) => {
+    setSubcategoryToMove({ id: sub.id, name: sub.name, currentCategoryId: sub.categoryId });
+    setMoveTargetCategoryId('');
+    setMoveDialogOpen(true);
+  };
 
   const toggleExpanded = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -183,7 +212,49 @@ export function CategoryManager({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Header */}
+      {/* Move Subcategory Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Unterkategorie verschieben</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              <strong>"{subcategoryToMove?.name}"</strong> in eine andere Kategorie verschieben.
+              Alle zugehörigen Zeiteinträge werden mitgenommen.
+            </p>
+            <div className="space-y-2">
+              <Label>Neue Kategorie</Label>
+              <Select value={moveTargetCategoryId} onValueChange={setMoveTargetCategoryId}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Kategorie wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter(c => c.id !== subcategoryToMove?.currentCategoryId)
+                    .map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded" style={{ backgroundColor: c.color }} />
+                          {c.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleMoveSubcategory}
+              disabled={!moveTargetCategoryId}
+            >
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Verschieben
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <FolderTree className="w-6 h-6 text-primary" />
@@ -346,6 +417,15 @@ export function CategoryManager({
                           <>
                             <span className="text-sm">{sub.name}</span>
                             <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="iconSm"
+                                onClick={() => openMoveDialog(sub)}
+                                className="text-muted-foreground hover:text-accent"
+                                title="In andere Kategorie verschieben"
+                              >
+                                <ArrowRightLeft className="w-3 h-3" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="iconSm"

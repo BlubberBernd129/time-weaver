@@ -739,7 +739,7 @@ export function useTimeTracker() {
     }
   }, [timerState]);
 
-  const stopTimer = useCallback(async () => {
+  const stopTimer = useCallback(async (description?: string) => {
     if (!timerState || !timerState.isRunning || !timerState.startTime) return null;
 
     const endTime = new Date();
@@ -778,13 +778,15 @@ export function useTimeTracker() {
 
     if (isAuthenticated() && timerState.runningEntryId) {
       try {
-        await pb.collection('time_entries').update(timerState.runningEntryId, {
+        const pbPayload: Record<string, unknown> = {
           end_time: endTime.toISOString(),
           duration: activeDuration,
           is_running: false,
           is_pause: false,
           pause_periods: serializePausePeriods(finalPausePeriods),
-        });
+        };
+        if (description) pbPayload.description = description;
+        await pb.collection('time_entries').update(timerState.runningEntryId, pbPayload);
 
         newEntry = {
           id: timerState.runningEntryId,
@@ -793,6 +795,7 @@ export function useTimeTracker() {
           startTime: timerState.startTime,
           endTime,
           duration: activeDuration,
+          description,
           isRunning: false,
           pausePeriods: finalPausePeriods,
         };
@@ -805,14 +808,14 @@ export function useTimeTracker() {
           startTime: timerState.startTime,
           endTime,
           duration: activeDuration,
+          description,
           isRunning: false,
           pausePeriods: finalPausePeriods,
         };
       }
     } else if (isAuthenticated()) {
-      // Fallback (shouldn't happen often): create a finished entry.
       try {
-        const record = await pb.collection('time_entries').create({
+        const pbPayload2: Record<string, unknown> = {
           category_id: timerState.categoryId,
           subcategory_id: timerState.subcategoryId,
           start_time: timerState.startTime.toISOString(),
@@ -821,7 +824,9 @@ export function useTimeTracker() {
           is_running: false,
           is_pause: false,
           pause_periods: serializePausePeriods(finalPausePeriods),
-        });
+        };
+        if (description) pbPayload2.description = description;
+        const record = await pb.collection('time_entries').create(pbPayload2);
 
         newEntry = {
           id: record.id,
@@ -830,6 +835,7 @@ export function useTimeTracker() {
           startTime: timerState.startTime,
           endTime,
           duration: activeDuration,
+          description,
           isRunning: false,
           pausePeriods: finalPausePeriods,
         };
@@ -842,6 +848,7 @@ export function useTimeTracker() {
           startTime: timerState.startTime,
           endTime,
           duration: activeDuration,
+          description,
           isRunning: false,
           pausePeriods: finalPausePeriods,
         };
@@ -854,6 +861,7 @@ export function useTimeTracker() {
         startTime: timerState.startTime,
         endTime,
         duration: activeDuration,
+        description,
         isRunning: false,
         pausePeriods: finalPausePeriods,
       };
@@ -1137,6 +1145,46 @@ export function useTimeTracker() {
     return subcategories.filter(s => s.categoryId === categoryId);
   }, [subcategories]);
 
+  // Move a subcategory to a different parent category, updating all related entries
+  const moveSubcategory = useCallback(async (subcategoryId: string, newCategoryId: string) => {
+    const sub = subcategories.find(s => s.id === subcategoryId);
+    if (!sub || sub.categoryId === newCategoryId) return;
+
+    // Update subcategory
+    if (isAuthenticated()) {
+      try {
+        await pb.collection('subcategories').update(subcategoryId, { category_id: newCategoryId });
+      } catch (error) {
+        console.error('Error moving subcategory in PocketBase:', error);
+      }
+    }
+
+    // Update all time entries that belong to this subcategory
+    const affectedEntries = timeEntries.filter(e => e.subcategoryId === subcategoryId);
+    if (isAuthenticated()) {
+      await Promise.all(
+        affectedEntries.map(e =>
+          pb.collection('time_entries').update(e.id, { category_id: newCategoryId }).catch(err =>
+            console.error('Error moving entry:', err)
+          )
+        )
+      );
+    }
+
+    // Update local state
+    const updatedSubs = subcategories.map(s =>
+      s.id === subcategoryId ? { ...s, categoryId: newCategoryId } : s
+    );
+    setSubcategories(updatedSubs);
+    saveSubcategories(updatedSubs);
+
+    const updatedEntries = timeEntries.map(e =>
+      e.subcategoryId === subcategoryId ? { ...e, categoryId: newCategoryId } : e
+    );
+    setTimeEntries(updatedEntries);
+    saveTimeEntries(updatedEntries);
+  }, [subcategories, timeEntries]);
+
   const getCategoryById = useCallback((id: string) => {
     return categories.find(c => c.id === id);
   }, [categories]);
@@ -1168,6 +1216,7 @@ export function useTimeTracker() {
     addSubcategory,
     updateSubcategory,
     deleteSubcategory,
+    moveSubcategory,
 
     startTimer,
     stopTimer,

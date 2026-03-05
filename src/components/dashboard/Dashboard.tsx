@@ -20,7 +20,7 @@ interface DashboardProps {
   timerState: TimerState | null;
   goals: Goal[];
   onStartTimer: (categoryId: string, subcategoryId: string, pomodoroMode?: boolean) => void;
-  onStopTimer: () => void;
+  onStopTimer: (description?: string) => void;
   onPauseTimer: () => void;
   onResumeTimer: () => void;
   onUpdateTimerStartTime: (newStartTime: Date) => void;
@@ -86,23 +86,9 @@ export function Dashboard({
   }, [timerState, categories, subcategories]);
 
   const handleDescriptionConfirm = useCallback((description: string) => {
-    // Capture running entry ID before stopping
-    const runningEntryId = timerState?.runningEntryId;
-    // Find the local entry that's still running
-    const runningEntry = timeEntries.find(e => e.isRunning && !e.endTime);
-    
-    onStopTimer();
-    
-    // After stop, update the entry with description
-    const entryId = runningEntryId || runningEntry?.id;
-    if (entryId && description) {
-      // Small delay to ensure stop has processed
-      setTimeout(() => {
-        onUpdateEntry(entryId, { description });
-      }, 500);
-    }
+    onStopTimer(description || undefined);
     setShowDescriptionDialog(false);
-  }, [onStopTimer, onUpdateEntry, timerState, timeEntries]);
+  }, [onStopTimer]);
 
   // Filter to only weekly goals
   const weeklyGoals = goals.filter(g => g.type === 'weekly');
